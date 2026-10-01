@@ -58,3 +58,10 @@ Controleer de 288 cellen, ontwikkelende temperatuurverschillen, sluitend energie
 ## Milestone 5 acceptatie
 
 Kies **Land, water en ijs** in de live modelkeuze en zet **Temperatuurkaart op de planeet** uit. Land is groen, vloeibaar water blauw en ijs wit; mengen volgt de ijsmassafractie. De bol is nog glad. De experimentmodelkeuze heeft dezelfde wateroptie en instelbaar reliëf/waterinventaris. CSV-export bevat dagelijkse waterdiagnostiek en alle eindreservoirs. JSON-replay, browser-/desktopovereenkomst en Pages-publicatie zijn gecontroleerd in workflow 36887172223. De getoonde 10 MJ/m²/K is de substraatcapaciteit; water en ijs voegen warmtecapaciteit en latente energie toe.
+
+
+## Milestone 6 bediening
+
+De demo opent met land/water/ijs en de planeetweergave. Gebruik **Waterwereld · 285 K** of **IJswereld · 230 K** om een beginwereld te kiezen. **Atmosferische gloed** en **Zichtbaar reliëf** zijn visuele instellingen. De temperatuurkaart toont nog steeds de vaste wetenschappelijke kleurschaal en de oorspronkelijke klimaatcellen. Het geometrische rooster volgt in de planeetweergave de fijnere terreingeometrie.
+
+Er worden geen extra afbeeldingen of externe assets geladen. Terrein wordt eenmaal opgebouwd bij de modelkeuze; per simulatie-update worden alleen de bestaande 288-cellenvelden gestuurd. De renderer gebruikt WebGL 2 en normale browserfuncties. Bij een verloren grafische context blijft een zichtbare herlaadmelding beschikbaar.

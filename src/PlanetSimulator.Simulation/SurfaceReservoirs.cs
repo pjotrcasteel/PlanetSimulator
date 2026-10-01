@@ -16,8 +16,7 @@ public sealed class SurfaceReservoirs
     public SurfaceReservoirs(SphericalGrid grid, SurfaceParameters parameters)
     {
         Parameters = parameters;
-        heights = grid.Cells.Select(c => parameters.ReliefMeters * (0.55 * Math.Cos(c.LatitudeRadians) * Math.Sin(2 * c.LongitudeRadians + 0.4)
-            + 0.30 * Math.Sin(3 * c.LatitudeRadians + 0.2) + 0.15 * Math.Cos(c.LatitudeRadians) * Math.Cos(5 * c.LongitudeRadians))).ToArray();
+        heights = grid.Cells.Select(c => Elevation(c.LatitudeRadians, c.LongitudeRadians, parameters.ReliefMeters)).ToArray();
         var lower = heights.Min();
         var upper = heights.Max() + parameters.WaterEquivalentDepthMeters;
         for (var iteration = 0; iteration < 80; iteration++)
@@ -33,6 +32,13 @@ public sealed class SurfaceReservoirs
         WaterMassPerSquareMeter = Array.AsReadOnly(masses);
         TotalWaterMassKilograms = masses.Sum() * grid.CellAreaSquareMeters;
     }
+
+    /// <summary>
+    /// Evaluates the continuous height field sampled by the finite-volume climate grid.
+    /// </summary>
+    public static double Elevation(double latitude, double longitude, double reliefMeters) => reliefMeters
+        * (0.55 * Math.Cos(latitude) * Math.Sin(2 * longitude + 0.4) + 0.30 * Math.Sin(3 * latitude + 0.2)
+            + 0.15 * Math.Cos(latitude) * Math.Cos(5 * longitude));
 
     public SurfaceSnapshot Snapshot(IReadOnlyList<double> enthalpies)
     {

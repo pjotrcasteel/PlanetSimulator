@@ -1,3 +1,4 @@
+import { createAppearance, setGeometry, drawAppearance, disposeAppearance } from './appearance.js';
 // Presentation only. All simulation time and rotation arrive from the C# core.
 let active;
 
@@ -51,7 +52,7 @@ void main() {
         vec2 cellUv = vec2(coordinates.x, (1.0 - cos(coordinates.y * 3.14159265)) * 0.5);
         vec2 water = texture(reservoirs, cellUv).rg;
         surface = water.r == 0.0 ? vec3(118.,137.,80.) / 255.
-            : mix(vec3(25.,89.,145.) / 255., vec3(225.,239.,242.) / 255., water.g);
+            : mix(vec3(25.,89.,145.) / 255., vec3(225.,239.,242.) / 255., (water.r > 0. ? water.g / water.r : 0.));
     }
     float light = max(dot(normalize(normal), normalize(sunlight)), 0.0);
     color = vec4(surface * (0.09 + light * 0.91), 1.0);
@@ -107,7 +108,7 @@ export function cameraMatrix(yaw, pitch, distance, aspect) {
     return result;
 }
 
-export async function start(canvas, reference) {
+export async function start(canvas, reference, geometry) {
     stop();
     const gl = canvas.getContext('webgl2', { antialias: true, alpha: true });
     if (!gl) throw new Error('WebGL 2 is unavailable.');
@@ -163,6 +164,11 @@ export async function start(canvas, reference) {
         mapLocation: gl.getUniformLocation(program, 'temperatureMap'),
         sunlightLocation: gl.getUniformLocation(program, 'sunlight'),
         wireframeLocation: gl.getUniformLocation(program, 'wireframe') };
+    state.appearance = createAppearance(gl, sphere);
+    setGeometry(state.appearance, geometry);
+    state.temperatureMap = false;
+    state.atmosphere = true;
+    state.relief = 1;
     active = state;
     canvas.addEventListener('pointerdown', event => {
         if (event.button !== 0) return;
@@ -197,7 +203,7 @@ export async function start(canvas, reference) {
         return response.json();
     }).then(build => {
         const label = document.getElementById('build-version');
-        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 5 · lokaal' : `Milestone 5 · ${build.commit.slice(0, 7)}`;
+        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 6 · lokaal' : `Milestone 6 · ${build.commit.slice(0, 7)}`;
     }).catch(() => {});
 }
 
@@ -210,7 +216,7 @@ function updateSnapshot(state, snapshot) {
         const field = new Float32Array(576);
         for (let i = 0; i < 288; i++) {
             field[2 * i] = surface.waterMassPerSquareMeter[i];
-            field[2 * i + 1] = field[2 * i] === 0 ? 0 : surface.iceMassPerSquareMeter[i] / surface.waterMassPerSquareMeter[i];
+            field[2 * i + 1] = surface.iceMassPerSquareMeter[i];
         }
         state.gl.activeTexture(state.gl.TEXTURE1);
         state.gl.bindTexture(state.gl.TEXTURE_2D, state.reservoirTexture);
@@ -225,6 +231,9 @@ function updateSnapshot(state, snapshot) {
     }
 }
 
+export function setSurfaceGeometry(data) { if (active) setGeometry(active.appearance, data); }
+export function setAtmosphere(value) { if (active) active.atmosphere = value; }
+export function setRelief(value) { if (active) active.relief = value; }
 export function setTemperatureMap(value) { if (active) active.temperatureMap = value; }
 
 function showError(message) {
@@ -267,6 +276,16 @@ function draw(state) {
     gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
+    if (state.surfaceModel && !state.temperatureMap) {
+        const camera = [Math.cos(state.pitch) * Math.sin(state.yaw) * state.distance, Math.sin(state.pitch) * state.distance,
+            Math.cos(state.pitch) * Math.cos(state.yaw) * state.distance];
+        const rendered = drawAppearance(state.appearance, {
+            matrix: cameraMatrix(state.yaw, state.pitch, state.distance, width / height), camera,
+            sunlight: [Math.cos(state.declination), Math.sin(state.declination), 0], rotation: state.rotation,
+            relief: state.relief, atmosphere: state.atmosphere, wireframe: state.wireframe, reservoirs: state.reservoirTexture
+        });
+        if (rendered) return;
+    }
     gl.useProgram(state.program);
     gl.bindVertexArray(state.vao);
     gl.uniformMatrix4fv(state.matrixLocation, false, cameraMatrix(state.yaw, state.pitch, state.distance, width / height));
@@ -309,5 +328,6 @@ export function stop() {
     state.gl.deleteVertexArray(state.vao);
     state.gl.deleteTexture(state.temperatureTexture);
     state.gl.deleteTexture(state.reservoirTexture);
+    disposeAppearance(state.appearance);
     state.gl.deleteProgram(state.program);
 }

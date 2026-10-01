@@ -19,3 +19,8 @@ main{align-items:start}.world-column{min-width:0}.viewer{height:640px;min-height
 #climate-model{margin-bottom:16px}.regional-summary{padding:14px 17px;background:#111d29;border:1px solid #293a4c;border-radius:9px;margin:12px 0}.regional-summary>div{display:flex;flex-direction:column;gap:6px;margin:10px 0}.regional-summary span{font-size:10px;color:#8ea3b8}.regional-summary strong{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums}.regional-summary b{font-weight:500}.heat-legend{display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:10px;color:#9cafbe}.heat-legend div{grid-column:1/-1;height:9px;border-radius:4px;background:linear-gradient(90deg,#274a8e,#3babc1,#7acba4,#efc465,#d95849)}.heat-legend span:last-child{text-align:right}.regional-range{width:100%;height:24px;margin-bottom:20px}.regional-range+label{margin-top:5px}
 
 #experiment-model{margin-bottom:18px}
+
+
+/* Milestone six: optical controls belong to the live planet, not scenario physics. */
+.appearance-controls{border:1px solid #2a3e50;background:#0e1b28;padding:17px;border-radius:10px;margin:17px 0}.appearance-controls .controls{margin:13px 0 7px;gap:8px}.appearance-controls button{font-size:11px;padding:8px}.appearance-controls label strong{float:right;color:#dce5ee}.appearance-controls .regional-range{margin-bottom:0}.appearance-controls .checkbox{margin:16px 0}.viewer{background:radial-gradient(ellipse at 45% 45%,#122333 0,#080e18 65%)}
+@media(min-width:1100px){.world-column{position:sticky;top:24px}}

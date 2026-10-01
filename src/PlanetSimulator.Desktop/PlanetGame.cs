@@ -11,7 +11,7 @@ namespace PlanetSimulator.Desktop;
 public sealed class PlanetGame : Game
 {
     private readonly GraphicsDeviceManager graphics;
-    private readonly SimulationSession session = new(regional: new RegionalParameters());
+    private SimulationSession session = new(regional: new RegionalParameters(), surface: new SurfaceParameters());
     private readonly CancellationTokenSource lifetime = new();
     private SimulationClock Clock => session.Clock;
     private SpriteBatch spriteBatch = null!;
@@ -30,7 +30,11 @@ public sealed class PlanetGame : Game
     private float pitch = 0.25f;
     private float distance = 3.5f;
     private bool wireframe;
-    private bool temperatureMap = true;
+    private bool temperatureMap;
+    private bool atmosphere = true;
+    private float relief = 1;
+    private RealisticPlanetRenderer? realisticRenderer;
+    private SurfaceReservoirs? renderedSurface;
     private Color[] decorativePixels = [];
     private Color[] mapPixels = [];
     private int[] textureCells = [];
@@ -48,6 +52,7 @@ public sealed class PlanetGame : Game
             SynchronizeWithVerticalRetrace = true,
         };
         Clock.Speed = 86400;
+        if (Environment.GetEnvironmentVariable("PLANET_SIMULATOR_WARM_CAPTURE") == "1") RestartSurface(285);
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
     }
@@ -120,6 +125,9 @@ public sealed class PlanetGame : Game
             loadedScenario = null; textureTick = -1;
         }
         if (Pressed(keyboard, Keys.T)) { temperatureMap = !temperatureMap; textureTick = -1; }
+        if (Pressed(keyboard, Keys.N)) atmosphere = !atmosphere;
+        if (Pressed(keyboard, Keys.V)) relief = relief == 0 ? 1 : 0;
+        if (Pressed(keyboard, Keys.P)) RestartSurface(session.Climate.Parameters.InitialTemperatureKelvin < 273.15 ? 285 : 230);
         if (Pressed(keyboard, Keys.O)) ChangeRegional(5, 0);
         if (Pressed(keyboard, Keys.K)) ChangeRegional(-5, 0);
         if (Pressed(keyboard, Keys.H)) ChangeRegional(0, 0.1);
@@ -163,7 +171,13 @@ public sealed class PlanetGame : Game
         if (Environment.GetEnvironmentVariable("PLANET_SIMULATOR_REGIONAL_CAPTURE") == "1" && textureTick == -1)
             for (var day = 0; day < 10; day++) session.AdvanceClock(1, lifetime.Token);
         session.AdvanceClock(Math.Min(gameTime.ElapsedGameTime.TotalSeconds, 60), lifetime.Token);
-        UpdateTemperatureTexture();
+        if (!ReferenceEquals(renderedSurface, session.Regional?.Surface))
+        {
+            realisticRenderer?.Dispose();
+            renderedSurface = session.Regional?.Surface;
+            realisticRenderer = renderedSurface is null ? null : new RealisticPlanetRenderer(GraphicsDevice, renderedSurface, lifetime.Token);
+        }
+        if (temperatureMap || realisticRenderer is null) UpdateTemperatureTexture();
         Window.Title = $"PlanetSimulator | {session.Snapshot().TemperatureKelvin:F2} K | day {Clock.ElapsedSeconds / 86400:F2} | {Clock.Speed:G}x";
         previousKeyboard = keyboard;
         previousMouse = mouse;
@@ -194,10 +208,16 @@ public sealed class PlanetGame : Game
         effect.World = Matrix.CreateRotationY((float)session.Planet.GetRotationRadians(Clock.ElapsedSeconds));
         effect.View = Matrix.CreateLookAt(camera, Vector3.Zero, Vector3.Up);
         effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.PiOver4, GraphicsDevice.Viewport.AspectRatio, 0.01f, 100);
-        foreach (var pass in effect.CurrentTechnique.Passes)
+        if (!temperatureMap && realisticRenderer is not null && session.Regional?.Snapshot().Surface is { } water)
+            realisticRenderer.Draw(water, effect.World, effect.View, effect.Projection,
+                new AppearanceOptions(camera, -effect.DirectionalLight0.Direction, relief, atmosphere, wireframe), lifetime.Token);
+        else
         {
-            pass.Apply();
-            GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, sphere.Vertices, 0, sphere.Vertices.Length, sphere.Indices, 0, sphere.Indices.Length / 3);
+            foreach (var pass in effect.CurrentTechnique.Passes)
+            {
+                pass.Apply();
+                GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, sphere.Vertices, 0, sphere.Vertices.Length, sphere.Indices, 0, sphere.Indices.Length / 3);
+            }
         }
 
         DrawReadouts();
@@ -221,9 +241,20 @@ public sealed class PlanetGame : Game
         graph.Dispose();
         effect.Dispose();
         surface.Dispose();
+        realisticRenderer?.Dispose();
         solid.Dispose();
         wire.Dispose();
         base.UnloadContent();
+    }
+
+    private void RestartSurface(double kelvin)
+    {
+        var climate = session.Climate.Parameters;
+        var paused = Clock.IsPaused; var speed = Clock.Speed;
+        session = new SimulationSession(new ClimateParameters(climate.DistanceAstronomicalUnits, climate.BondAlbedo,
+            climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? new RegionalParameters(), new SurfaceParameters());
+        Clock.IsPaused = paused; Clock.Speed = Math.Min(speed, 86400);
+        loadedScenario = null; textureTick = -1;
     }
 
     private void ChangeForcing(double distanceChange, double albedoChange)
@@ -306,7 +337,7 @@ public sealed class PlanetGame : Game
         var mint = new Color(139, 216, 191);
         var muted = new Color(159, 177, 193);
         spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 5", new Vector2(24, 24), mint);
+        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 6", new Vector2(24, 24), mint);
         var lines = new[]
         {
             $"TEMPERATURE: {F(climate.TemperatureKelvin)} K / {F(climate.TemperatureKelvin - 273.15)} C",
@@ -342,7 +373,7 @@ public sealed class PlanetGame : Game
         text.Draw(spriteBatch, "DRAG: ORBIT / WHEEL: ZOOM / SPACE: PAUSE / R: RESET", new Vector2(24, bottom), muted);
         text.Draw(spriteBatch, "1-4: SPEED / A-Z: ALBEDO / PAGE UP-DOWN: DISTANCE / W: WIREFRAME", new Vector2(24, bottom + 23), muted);
         text.Draw(spriteBatch, "C: MODEL / B: WATER / T: MAP / O-K: TILT / H-J: TRANSPORT", new Vector2(24, bottom + 46), muted);
-        text.Draw(spriteBatch, "THERMAL SCALE: 170-330 K / PRESCRIBED PRESSURE", new Vector2(24, bottom + 69), mint);
+        text.Draw(spriteBatch, "N: OPTICAL ATMOSPHERE / V: RELIEF / P: COLD-WARM START", new Vector2(24, bottom + 69), mint);
         spriteBatch.End();
     }
 

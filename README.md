@@ -12,7 +12,7 @@ Maak een scenario, voer een experiment uit en vergelijk de temperatuurcurve met 
 
 Bekijk ook een eenvoudige belichte 3D-planeet en verander afstand tot de ster en reflectie. De gedeelde C#-kern berekent temperatuur, warmtestraling en energiebalans voor het gekozen model. De werkelijke temperatuur verandert geleidelijk; de berekende evenwichtstemperatuur reageert direct op nieuwe instellingen.
 
-Dit is een model zonder atmosfeer of broeikaseffect. De gewone oppervlaktekleuren zijn decoratief; de temperatuurkaart bevat modeldata. Er zijn nog geen continenten, oceanen, wind of ecosystemen. De referentieplaneet heeft aardachtige massa en straal, met 24 uur rotatietijd. De modeltemperatuur is geen voorspelling voor de huidige aarde.
+Dit is een model zonder atmosfeer of broeikaseffect. De planeetweergave volgt synthetisch terrein, waterreservoirs en ijs uit het model. Een aparte temperatuurkaart toont de 288 klimaatrekencellen. Atmosferische gloed is een optisch effect; wind en ecosystemen volgen later. De referentieplaneet heeft aardachtige massa en straal, met 24 uur rotatietijd. De modeltemperatuur is geen voorspelling voor de huidige aarde.
 
 ## Starten
 
@@ -71,4 +71,17 @@ GitHub Actions bouwt en test op Windows, maakt een zelfstandige Windows-download
 Zie [scenario’s en experimenten](docs/EXPERIMENTS.md), [wetenschappelijke aannames](docs/SCIENCE.md), [roadmap](docs/ROADMAP.md), [validatiestatus](docs/VALIDATION.md) en [Pages-inrichting](docs/WEB-DEMO.md).
 
 
-Milestone 5 voegt **Land, water en ijs** toe aan de modelkeuze. Zet de temperatuurkaart uit voor groen land, blauw water en wit ijs. De fysieke toestand komt uit C#; het terrein is voorlopig een grof synthetisch raster op een gladde bol. In de desktopapp schakelt **B** waterreservoirs aan/uit (herstart); **T** wisselt de kaart. Experimenten kunnen reliëf en waterinventaris instellen en dagelijkse waterdiagnostiek plus eindkaarten exporteren. Begin rond 273,15 K met ondiep water om de faseovergang snel te onderzoeken. Zie SCIENCE.md voor de vaste-drukaanname en beperkingen.
+Milestone 5 voegt **Land, water en ijs** toe aan de modelkeuze. Zet de temperatuurkaart uit voor rotsachtig land, blauw water en wit ijs. De fysieke toestand komt uit C#; milestone 6 reconstrueert de onderliggende hoogtefunctie als fijnere geometrie met uitvergroot reliëf. In de desktopapp schakelt **B** waterreservoirs aan/uit (herstart); **T** wisselt de kaart. Experimenten kunnen reliëf en waterinventaris instellen en dagelijkse waterdiagnostiek plus eindkaarten exporteren. Begin rond 273,15 K met ondiep water om de faseovergang snel te onderzoeken. Zie SCIENCE.md voor de vaste-drukaanname en beperkingen.
+
+
+## Milestone 6 — planeetweergave
+
+De demo start in de nieuwe weergave met een bevroren wereld. Kies **Waterwereld · 285 K** om de oceanen te zien, of **IJswereld · 230 K** voor de koude start. Beide herstarten de tijd en zijn echte beginwaarden: de planeet kan vervolgens verder afkoelen of opwarmen.
+
+- Gedeelde C#-terreingeometrie voor MonoGame en WebGL, met kustlijnen uit dezelfde hoogtefunctie als het model.
+- Zichtbare richels en rotsmaterialen, water met zonreflectie en ijs volgens de berekende massafractie.
+- Optische atmosfeer met blauwe verstrooiing en planetaire schaduw; schakelbaar zonder klimaateffect.
+- Instelbaar uitvergroot reliëf en behoud van de wetenschappelijke temperatuurkaart.
+- Desktop: **P** koude/warme start, **N** atmosferische gloed, **V** reliëf aan/uit; **B** watermodel en **T** temperatuurkaart.
+
+`PlanetSimulator.Rendering` bevat de engine-onafhankelijke geometrie en optische referentiefuncties. Kleuren, kleine richels en optische instellingen zijn presentatie. Ze voegen geen water, leven, druk of broeikaseffect toe aan de simulatie. Zie [SCIENCE.md](docs/SCIENCE.md).

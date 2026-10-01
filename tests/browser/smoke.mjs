@@ -23,7 +23,7 @@ const server = createServer(async (request, response) => {
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 let page;
-const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
+const browser = await chromium.launch({ executablePath: process.env.PLANET_CHROMIUM_PATH || undefined, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 try {
     page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
@@ -221,6 +221,32 @@ try {
     await writeFile('artifacts/browser/water-scenario.json', waterJson);
     await writeFile('artifacts/browser/water-results.csv', waterCsv);
     await writeFile('artifacts/browser/water-regions.csv', waterRegions);
+    // Presentation settings must never alter time, temperature or the water budget.
+    await page.locator('#warm-start').click();
+    await page.waitForFunction(() => Number(document.querySelector('#temperature').dataset.kelvin) === 285);
+    await page.waitForTimeout(300);
+    const warm = await page.locator('#planet-canvas').screenshot();
+    await page.screenshot({ path: 'artifacts/browser/planet-warm.png', fullPage: true });
+    await page.locator('#atmosphere').uncheck();
+    await page.waitForTimeout(200);
+    const noAtmosphere = await page.locator('#planet-canvas').screenshot();
+    assert.notDeepEqual(warm, noAtmosphere);
+    await setRange('#visual-relief', '0');
+    await page.waitForTimeout(200);
+    const noRelief = await page.locator('#planet-canvas').screenshot();
+    assert.notDeepEqual(noAtmosphere, noRelief);
+    assert.equal(Number(await page.locator('#temperature').getAttribute('data-kelvin')), 285);
+    assert.equal(parseFloat(await page.locator('#elapsed-days').innerText()), 0);
+    assert.equal(Number(await page.locator('#surface-summary').getAttribute('data-liquid-fraction')), 1);
+    assert.equal(await page.evaluate(() => document.querySelector('#planet-canvas').getContext('webgl2').getError()), 0);
+    await page.locator('#atmosphere').check();
+    await setRange('#visual-relief', '1');
+    await page.locator('#cold-start').click();
+    await page.waitForFunction(() => Number(document.querySelector('#temperature').dataset.kelvin) === 230);
+    await page.waitForTimeout(250);
+    const cold = await page.locator('#planet-canvas').screenshot();
+    assert.notDeepEqual(warm, cold);
+    await page.screenshot({ path: 'artifacts/browser/planet-cold.png', fullPage: true });
     await page.selectOption('#climate-model', 'regional');
     await page.locator('#temperature-map').check();
     // Keep a developed spatial field visible in the final desktop and mobile previews.

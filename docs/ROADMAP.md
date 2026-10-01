@@ -52,11 +52,11 @@ Status: voltooid. Synthetische hoogtekaart, basin-vulling, enthalpie, fasefracti
 
 ## 6. Planeetlook
 
-Terrein, oceaanweergave en atmosferische verstrooiing.
+Gedeelde terreingeometrie, fijnere kustlijnen, rots-/water-/ijsmaterialen, zonreflectie en een schakelbare optische atmosfeer. Koude en warme startwerelden; instelbaar visueel reliëf.
 
 Acceptatie: Visuele toestand volgt de modeldata en blijft interactief.
 
-Status: Gepland.
+Status: geïmplementeerd; 47 C#-tests en lokale desktop-/webbuilds geslaagd. Publicatieacceptatie loopt bij deze commit. Optische sfeer is nog niet gekoppeld aan druk of klimaat; reliëf en microdetail zijn expliciete visualisaties.
 
 ## 7. Weer en waterkringloop
 
