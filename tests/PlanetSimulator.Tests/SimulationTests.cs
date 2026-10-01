@@ -72,4 +72,24 @@ public sealed class SimulationTests
         Assert.AreEqual(Math.PI, planet.GetRotationRadians(planet.RotationPeriodSeconds / 2), 1e-12);
         Assert.AreEqual(9.82, planet.SurfaceGravity, 0.02);
     }
+    [TestMethod]
+    public void Session_SnapshotMatchesDesktopClockAndRotation()
+    {
+        var session = new SimulationSession();
+        var desktopClock = new SimulationClock();
+        var desktopPlanet = new Planet();
+        foreach (var elapsed in new[] { 0.02, 0.7, 3.0, 0.01 })
+        {
+            var snapshot = session.Advance(elapsed, TestContext.CancellationToken);
+            desktopClock.Advance(elapsed, TestContext.CancellationToken);
+            Assert.AreEqual(desktopClock.ElapsedSeconds, snapshot.ElapsedSeconds);
+            Assert.AreEqual(desktopPlanet.GetRotationRadians(desktopClock.ElapsedSeconds), snapshot.RotationRadians);
+        }
+
+        session.Clock.IsPaused = true;
+        var before = session.Advance(0, TestContext.CancellationToken);
+        Assert.AreEqual(before, session.Advance(10, TestContext.CancellationToken));
+        session.Clock.Reset();
+        Assert.AreEqual(new SimulationSnapshot(0, 0), session.Advance(0, TestContext.CancellationToken));
+    }
 }

@@ -1,5 +1,6 @@
 <Solution>
   <Project Path="src/PlanetSimulator.Simulation/PlanetSimulator.Simulation.csproj" />
   <Project Path="src/PlanetSimulator.Desktop/PlanetSimulator.Desktop.csproj" />
+  <Project Path="src/PlanetSimulator.Web/PlanetSimulator.Web.csproj" />
   <Project Path="tests/PlanetSimulator.Tests/PlanetSimulator.Tests.csproj" />
 </Solution>

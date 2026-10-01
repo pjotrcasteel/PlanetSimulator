@@ -1,5 +1,12 @@
-name: Build and test
-on: [push, pull_request, workflow_dispatch]
+name: Build, test and publish
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+concurrency:
+  group: planet-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
@@ -23,3 +30,59 @@ jobs:
         with:
           name: test-results
           path: '**/TestResults/*.trx'
+
+  web:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test browser geometry
+        run: node --test tests/browser/geometry.test.mjs
+      - name: Publish browser demo
+        run: dotnet publish src/PlanetSimulator.Web -c Release -o artifacts/web
+      - name: Prepare GitHub Pages paths and version
+        env:
+          BUILD_SHA: ${{ github.sha }}
+          REPOSITORY_NAME: ${{ github.event.repository.name }}
+        run: python scripts/prepare-pages.py artifacts/web/wwwroot
+      - name: Install browser checks
+        run: npm ci
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Check published demo in Chromium
+        run: npm run test:smoke -- artifacts/web/wwwroot
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-preview
+          path: artifacts/browser
+      - uses: actions/upload-artifact@v4
+        with:
+          name: PlanetSimulator-web
+          path: artifacts/web/wwwroot
+      - uses: actions/upload-pages-artifact@v3
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          path: artifacts/web/wwwroot
+  deploy:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    needs: web
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check Pages configuration
+        uses: actions/configure-pages@v5
+      - name: Publish latest demo
+        id: deployment
+        uses: actions/deploy-pages@v4

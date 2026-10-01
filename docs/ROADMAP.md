@@ -10,6 +10,14 @@ Acceptatie: De app start en de camera werkt ook bij pauze.
 
 Status: Geïmplementeerd; build, zes tests en offscreen-render geslaagd. Interactieve Windows-acceptatie staat nog open.
 
+## 1.5. Browserdemo
+
+Blazor WebAssembly met dezelfde C#-simulatiekern en een WebGL 2-renderer. Draaien, zoomen, pauze, reset, snelheidskeuze en wireframe. Alleen de presentatie verschilt van de desktopapp. De browserdemo pauzeert automatisch zolang het tabblad verborgen is.
+
+Acceptatie: desktop- en browsersnapshots komen overeen; build en publish slagen; bediening en Pages-subpad werken. Iedere geslaagde wijziging op main publiceert de laatste demo. Buildidentiteit staat onderaan de pagina.
+
+Status: geïmplementeerd; build, browsercontrole en publicatie worden gecontroleerd.
+
 ## 2. Licht en temperatuur
 
 Globale stralingsbalans, albedo, warmtecapaciteit en emissie.

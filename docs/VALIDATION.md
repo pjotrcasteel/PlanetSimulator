@@ -22,3 +22,12 @@ Handmatige acceptatie op Windows:
 8. Escape sluit de app.
 
 Geen wetenschappelijke klimaatsimulatie in deze milestone; uitsluitend tijd, rotatie en basisplaneeteigenschappen.
+
+## Milestone 1.5
+
+- C#-tests: zeven geslaagd, inclusief overeenkomst van desktop- en browsersnapshots.
+- Node-geometriechecks: twee geslaagd (unit sphere, indices, seam en orbitcamera).
+- Blazor-build en statische publish lokaal gecontroleerd. Deze werkomgeving blokkeert MSBuild-taskhosts; voor de lokale controle is alleen de tijdelijke SDK-cache aangepast en trimming uitgeschakeld. De repository bevat die aanpassingen niet. De standaard Release-build en getrimde publish worden definitief in GitHub Actions gecontroleerd.
+- Pages-basepad /PlanetSimulator/ gecontroleerd in het gepubliceerde index.html.
+- Chromium-acceptatie en screenshots zijn onderdeel van de web-job. De lokale browserdownload was niet beschikbaar; de echte browsercontrole wordt op GitHub uitgevoerd.
+- Eenmalige Pages-activatie en live bereikbaarheid moeten worden bevestigd voordat de demo als gepubliceerd geldt.

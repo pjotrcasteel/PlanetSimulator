@@ -50,3 +50,15 @@ GitHub Actions bouwt en test op Windows en maakt een zelfstandig Windows-downloa
 Zie [de roadmap](docs/ROADMAP.md) voor de volledige ontwikkelroute.
 
 ![Milestone 1](docs/milestone-1.png)
+
+## Browserdemo (milestone 1.5)
+
+De browserdemo gebruikt dezelfde C#-simulatiekern via Blazor WebAssembly. De 3D-presentatie gebruikt WebGL 2 zonder externe CDN of betaalde engine.
+
+```powershell
+dotnet run --project src/PlanetSimulator.Web --urls http://localhost:5080
+```
+
+Open http://localhost:5080. Een verborgen tabblad telt geen simulatietijd op. De minutenstappen zijn gelijk aan de desktopapp. Voor de dependency-free rendererchecks: `node --test tests/browser/geometry.test.mjs` (Node 22+).
+
+Verwachte demo-URL na Pages-activatie: https://pjotrcasteel.github.io/PlanetSimulator/. De workflow publiceert na een succesvolle Windows-build en tests. Zie [Pages-inrichting](docs/WEB-DEMO.md) voor de eenmalige instelling en beschikbaarheid bij een private repo.

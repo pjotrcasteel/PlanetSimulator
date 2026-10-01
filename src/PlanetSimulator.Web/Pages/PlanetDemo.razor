@@ -1,0 +1,118 @@
+@implements IAsyncDisposable
+@inject IJSRuntime JS
+
+<PageTitle>PlanetSimulator — interactieve demo</PageTitle>
+<div class="shell">
+    <header>
+        <a class="brand" href="./"><span class="brand-mark">◉</span> PlanetSimulator</a>
+        <span class="milestone">MILESTONE 1.5 <span>·</span> BROWSERDEMO</span>
+    </header>
+    <main>
+        <section class="viewer" aria-label="Interactieve planeet">
+            <div class="viewer-heading"><span class="eyebrow">EEN WERELD IN WORDING</span><h1>Het begint met een planeet.</h1></div>
+            <canvas id="planet-canvas" @ref="canvas" aria-label="3D-planeet: sleep om te draaien en scroll om te zoomen" tabindex="0"></canvas>
+            <div class="viewer-bottom"><span class="status-dot"></span><span>@(session.Clock.IsPaused ? "Gepauzeerd" : "Simulatie actief")</span><span class="mouse-hint">Slepen om te draaien · scrollen om te zoomen</span></div>
+            @if (error is not null)
+            {
+                <div class="error" role="alert">@error</div>
+            }
+        </section>
+        <aside>
+            <span class="eyebrow">REFERENTIEPLANEET</span>
+            <h2>Een eerste blik.</h2>
+            <p class="intro">Bekijk een eenvoudige wereldbol en verken hoe de simulatietijd haar rotatie bepaalt.</p>
+            <div class="time-card"><span>VERSTREKEN SIMULATIETIJD</span><strong id="elapsed-days">@((session.Clock.ElapsedSeconds / 86400).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)) <small>dagen</small></strong></div>
+            <div class="controls">
+                <button id="pause" @onclick="TogglePause" disabled="@(!ready)">@(session.Clock.IsPaused ? "▶ Hervatten" : "Ⅱ Pauzeren")</button>
+                <button id="reset" class="secondary" @onclick="ResetAsync" disabled="@(!ready)">↺ Reset</button>
+            </div>
+            <label for="speed">Tijdsnelheid</label>
+            <select id="speed" value="@session.Clock.Speed" @onchange="ChangeSpeed" disabled="@(!ready)">
+                <option value="1">Realtime · 1×</option>
+                <option value="3600">1 uur per seconde · 3.600×</option>
+                <option value="86400">1 dag per seconde · 86.400×</option>
+            </select>
+            <label class="checkbox"><input id="wireframe" type="checkbox" @bind="wireframe" @bind:after="ChangeWireframeAsync" disabled="@(!ready)" /> Toon het geometrische rooster</label>
+            <dl><div><dt>Straal</dt><dd>6.371 km</dd></div><div><dt>Zwaartekracht</dt><dd>@session.Planet.SurfaceGravity.ToString("F2") m/s²</dd></div><div><dt>Rotatieperiode</dt><dd>24 uur</dd></div></dl>
+            <div class="note"><strong>De eerste bouwsteen</strong><p>Kleuren en lijnen zijn nu decoratief. Klimaat, water en leven volgen in de volgende milestones.</p></div>
+        </aside>
+    </main>
+    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 1.5</span></footer>
+</div>
+
+@code {
+    private readonly SimulationSession session = new();
+    private readonly CancellationTokenSource lifetime = new();
+    private ElementReference canvas;
+    private IJSObjectReference? module;
+    private DotNetObjectReference<PlanetDemo>? reference;
+    private bool ready;
+    private bool wireframe;
+    private string? error;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+        try
+        {
+            module = await JS.InvokeAsync<IJSObjectReference>("import", lifetime.Token, "./js/planet.js");
+            reference = DotNetObjectReference.Create(this);
+            await module.InvokeVoidAsync("start", lifetime.Token, canvas, reference);
+            ready = true;
+        }
+        catch (JSException exception)
+        {
+            error = exception.Message.Contains("WebGL", StringComparison.OrdinalIgnoreCase)
+                ? "Deze browser kan de 3D-planeet niet tekenen. Gebruik een browser met WebGL 2 en ingeschakelde hardwareversnelling."
+                : "De demo kon niet starten. Vernieuw de pagina om opnieuw te proberen.";
+        }
+
+        StateHasChanged();
+    }
+
+    [JSInvokable]
+    public SimulationSnapshot Advance(double realSeconds)
+    {
+        var snapshot = session.Advance(realSeconds, lifetime.Token);
+        StateHasChanged();
+        return snapshot;
+    }
+
+    private void TogglePause() => session.Clock.IsPaused = !session.Clock.IsPaused;
+
+    private void ChangeSpeed(ChangeEventArgs args)
+    {
+        if (double.TryParse(args.Value?.ToString(), out var speed)) session.Clock.Speed = speed;
+    }
+
+    private async Task ResetAsync()
+    {
+        session.Clock.Reset();
+        if (module is not null) await module.InvokeVoidAsync("resetCamera", lifetime.Token);
+    }
+
+    private async Task ChangeWireframeAsync()
+    {
+        if (module is not null) await module.InvokeVoidAsync("setWireframe", lifetime.Token, wireframe);
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        await lifetime.CancelAsync();
+        if (module is not null)
+        {
+            try
+            {
+                await module.InvokeVoidAsync("stop", CancellationToken.None);
+                await module.DisposeAsync();
+            }
+            catch (JSDisconnectedException)
+            {
+                // The page has already closed.
+            }
+        }
+
+        reference?.Dispose();
+        lifetime.Dispose();
+    }
+}
