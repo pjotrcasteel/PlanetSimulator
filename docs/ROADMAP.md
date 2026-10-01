@@ -1,0 +1,99 @@
+# Roadmap
+
+We ontwikkelen wetenschap en presentatie iteratief. Milestone 1 begint eenvoudig; een prachtige planeet blijft het visuele einddoel. Validatie begint meteen en wordt bij milestone 11 systematisch uitgebreid. Geen belofte van onderzoeksnauwkeurigheid zonder meetbare validatie.
+
+## 1. Eerste planeet
+
+3D-bol, orbitcamera, klok, pauze, reset en tests.
+
+Acceptatie: De app start en de camera werkt ook bij pauze.
+
+Status: Geïmplementeerd; build, zes tests en offscreen-render geslaagd. Interactieve Windows-acceptatie staat nog open.
+
+## 2. Licht en temperatuur
+
+Globale stralingsbalans, albedo, warmtecapaciteit en emissie.
+
+Acceptatie: Een referentiegeval bereikt de analytisch verwachte evenwichtstemperatuur.
+
+Status: Gepland.
+
+## 3. Experimenten
+
+Parameters, grafieken en versieerbare scenario-opslag.
+
+Acceptatie: Identieke scenario’s leveren reproduceerbare uitkomsten.
+
+Status: Gepland.
+
+## 4. Regionaal klimaat
+
+Sferisch rooster, regionale instraling, ashelling en warmtetransport.
+
+Acceptatie: Roosteroppervlakken tellen op tot 4πR²; energiebudget sluit.
+
+Status: Gepland.
+
+## 5. Land, water en ijs
+
+Hoogtekaart, waterreservoirs en faseovergangen.
+
+Acceptatie: Watermassa blijft behouden; latente warmte wordt meegenomen.
+
+Status: Gepland.
+
+## 6. Planeetlook
+
+Terrein, oceaanweergave en atmosferische verstrooiing.
+
+Acceptatie: Visuele toestand volgt de modeldata en blijft interactief.
+
+Status: Gepland.
+
+## 7. Weer en waterkringloop
+
+Vocht, condensatie, neerslag, afvoer en benaderde circulatie.
+
+Acceptatie: Waterbudget sluit en convergentie bij kleinere tijdstappen is onderzocht.
+
+Status: Gepland.
+
+## 8. Atmosfeer en chemie
+
+Gasreservoirs, partiële drukken en geselecteerde reacties.
+
+Acceptatie: Elementbalansen sluiten en voorraden worden nooit negatief.
+
+Status: Gepland.
+
+## 9. Eerste leven
+
+Micro-organismen, fotosynthese, ademhaling en nutriënten.
+
+Acceptatie: Groei is begrensd door beschikbare energie en grondstoffen.
+
+Status: Gepland.
+
+## 10. Terraforming
+
+Installaties, energie, productie, transport en ingrepen.
+
+Acceptatie: Iedere ingreep heeft expliciete kosten, doorlooptijd en bijwerkingen.
+
+Status: Gepland.
+
+## 11. Validatie
+
+Referentiegegevens, onzekerheden en gevoeligheidsanalyse.
+
+Acceptatie: Geldigheidsgebied en afwijkingen zijn gedocumenteerd.
+
+Status: Gepland.
+
+## 12. Uitgebreide simulator
+
+Planeettypen, scenario-editor, inspectie en optimalisatie.
+
+Acceptatie: Langdurige experimenten zijn reproduceerbaar en visueel overtuigend.
+
+Status: Gepland.
