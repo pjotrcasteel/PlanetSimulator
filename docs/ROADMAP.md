@@ -48,7 +48,7 @@ Hoogtekaart, waterreservoirs en faseovergangen.
 
 Acceptatie: Watermassa blijft behouden; latente warmte wordt meegenomen.
 
-Status: Gepland.
+Status: geïmplementeerd. Synthetische hoogtekaart, basin-vulling, enthalpie, fasefracties, desktop-/browserkaart en versieerbare waterexperimenten. Automatische controles worden bij deze commit uitgevoerd. Geen stroming, atmosfeer of ijsalbedo; zie SCIENCE.md.
 
 ## 6. Planeetlook
 

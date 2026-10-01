@@ -67,6 +67,12 @@ jobs:
         run: |
           python scripts/compare-experiment.py artifacts/browser/regional-results.csv artifacts/regional-experiment/results.csv
           python scripts/compare-experiment.py artifacts/browser/regional-regions.csv artifacts/regional-experiment/regions.csv
+      - name: Replay water experiment with desktop host
+        run: dotnet run --project src/PlanetSimulator.Desktop -c Release -- --experiment artifacts/browser/water-scenario.json --output artifacts/water-experiment
+      - name: Compare water budgets and every reservoir
+        run: |
+          python scripts/compare-experiment.py artifacts/browser/water-results.csv artifacts/water-experiment/results.csv
+          python scripts/compare-experiment.py artifacts/browser/water-regions.csv artifacts/water-experiment/regions.csv
       - uses: actions/upload-artifact@v4
         if: always()
         with:

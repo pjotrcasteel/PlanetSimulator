@@ -3,13 +3,13 @@
 @inject IJSRuntime JS
 
 <section class="experiment-panel" aria-label="Reproduceerbare experimenten">
-    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 4 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
+    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 5 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
         <p>Elke run begint opnieuw. Vergelijk temperatuurcurves en bewaar alle beginwaarden en geplande wijzigingen in een scenario.</p></div>
     <div class="experiment-layout">
         <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
             <fieldset disabled="@busy">
                 <label for="experiment-model">Model voor dit experiment</label>
-                <select id="experiment-model" value="@(regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option></select>
+                <select id="experiment-model" value="@(surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option></select>
                 @if (regionalModel)
                 {
                     <div class="parameter-grid">
@@ -18,6 +18,14 @@
                         <div><label for="experiment-year">Jaarlengte (dagen)</label><input id="experiment-year" type="number" min="30" max="1000" step="any" required @bind="yearDays" /></div>
                     </div>
                     <p class="field-hint">Regionale runs rekenen meer uit. Probeer eerst 10–30 dagen. De groene curve is het oppervlaktegemiddelde; stralingsevenwicht is geen doel voor de gemiddelde regionale temperatuur.</p>
+                }
+                @if (surfaceModel)
+                {
+                    <div class="parameter-grid">
+                        <div><label for="experiment-relief">Terreinreliëf (m)</label><input id="experiment-relief" type="number" min="0" max="5000" step="any" required @bind="relief" /></div>
+                        <div><label for="experiment-water">Waterinventaris (m wereldwijd)</label><input id="experiment-water" type="number" min="0" max="5000" step="any" required @bind="waterDepth" /></div>
+                    </div>
+                    <p class="field-hint">Volledige kolommen delen één temperatuur; diepe reservoirs reageren traag. Bevriezen en smelten kosten energie. Geen verdamping of stroming; uniforme reflectie.</p>
                 }
                 <label for="scenario-name">Scenarionaam</label><input id="scenario-name" required maxlength="80" @bind="name" />
                 <div class="parameter-grid">
@@ -75,6 +83,10 @@
                 </svg>
                 <label for="inspect-day">Inspecteer dag <strong id="inspected-day">@selectedDay</strong></label>
                 <input id="inspect-day" class="inspection-slider" type="range" min="0" max="@result.Scenario.DurationDays" @bind="selectedDay" @bind:event="oninput" />
+                @if (Selected.Regional?.Surface is { } water)
+                {
+                    <p id="experiment-water-summary" data-liquid-fraction="@F(water.LiquidMassFraction, "R")">Vloeibaar: @F(water.LiquidMassFraction * 100)% · watermassa: @F(water.TotalWaterMassKilograms, "G4") kg · afwijking: @F(water.WaterMassErrorKilograms, "G3") kg</p>
+                }
                 <dl class="sample-readout"><div><dt>Temperatuur</dt><dd id="sample-temperature" data-kelvin="@F(Selected.TemperatureKelvin, "R")">@F(Selected.TemperatureKelvin - 273.15) °C</dd></div>
                     <div><dt>Netto vermogen</dt><dd>@F(Selected.AbsorbedWattsPerSquareMeter - Selected.EmittedWattsPerSquareMeter) W/m²</dd></div>
                     <div><dt>Budgetafwijking</dt><dd>@F(Selected.BudgetErrorJoulesPerSquareMeter, "G3") J/m²</dd></div></dl>
@@ -100,7 +112,8 @@
 </section>
 
 @code {
-    private bool regionalModel;
+    private bool regionalModel, surfaceModel;
+    private double relief = 10, waterDepth = 3;
     private double tilt = 23.44, diffusion = 0.6, yearDays = 365.25;
     private string name = "Referentieplaneet";
     private int days = 365;
@@ -143,11 +156,17 @@
     {
         var climate = new ClimateParameters(distance, albedo, capacity * 1e6, initialTemperature, luminosity);
         var events = changes.Select(c => new ForcingChange { Day = c.Day, DistanceAstronomicalUnits = c.Distance, BondAlbedo = c.Albedo }).ToArray();
+        if (surfaceModel) return ExperimentScenario.CreateSurface(name, days, climate, new RegionalParameters(tilt, diffusion, yearDays),
+            new SurfaceParameters(relief, waterDepth), events);
         return regionalModel ? ExperimentScenario.CreateRegional(name, days, climate, new RegionalParameters(tilt, diffusion, yearDays), events)
             : ExperimentScenario.Create(name, days, climate, events);
     }
 
-    private void SelectExperimentModel(ChangeEventArgs args) => regionalModel = args.Value?.ToString() == "regional";
+    private void SelectExperimentModel(ChangeEventArgs args)
+    {
+        surfaceModel = args.Value?.ToString() == "surface";
+        regionalModel = surfaceModel || args.Value?.ToString() == "regional";
+    }
 
     private void AddChange() => changes.Add(new ChangeDraft { Day = changes.Count == 0 ? Math.Min(30, days - 1) : changes[^1].Day + 1, Distance = distance, Albedo = albedo });
 
@@ -224,6 +243,8 @@
     {
         name = scenario.Name; days = scenario.DurationDays;
         regionalModel = scenario.Regional is not null;
+        surfaceModel = scenario.Surface is not null;
+        if (scenario.Surface is { } surface) { relief = surface.ReliefMeters; waterDepth = surface.WaterEquivalentDepthMeters; }
         if (scenario.Regional is { } regional)
         { tilt = regional.AxialTiltDegrees; diffusion = regional.HeatDiffusionWattsPerSquareMeterKelvin; yearDays = regional.YearDays; }
         var climate = scenario.Climate;

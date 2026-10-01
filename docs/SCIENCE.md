@@ -79,3 +79,22 @@ Grof rooster, geen atmosfeer of broeikaseffect, wolken, land/oceanen, latente wa
 
 - NASA, ashelling en seizoenen: https://science.nasa.gov/earth/facts/
 - CLIMLAB documentatie, sferische meridionale diffusie, operator en D-eenheid: https://climlab.readthedocs.io/en/latest/api/climlab.dynamics.MeridionalHeatDiffusion.html
+
+
+## Milestone 5: terrein, water en ijs
+
+Het nieuwe model `surface-enthalpy-rk4-60s-12x24-v1` voegt een synthetische, deterministische hoogtekaart en zoetwaterkolommen toe. Het bestaande regionale model blijft reproduceerbaar. Reliëf is een som van sferische sinusfuncties: geen aardse topografie, erosie of tektoniek. De bol blijft geometrisch glad; werkelijk terrein en betere oceaanweergave volgen bij milestone 6.
+
+Bij initialisatie wordt één waterniveau gevonden met bisectie zodat `mean(max(0, niveau − hoogte))` gelijk is aan de opgegeven globale waterinventaris in meters. Referentiedichtheid: 1000 kg/m³. Iedere cel bewaart daarna haar volledige massa. De standaard 10 m reliëf en 3 m inventaris geven ondiepe reservoirs om veranderingen zichtbaar te maken. Diepe kolommen kunnen worden ingesteld, maar reageren zeer traag: het hele reservoir deelt één temperatuur, zonder stratificatie.
+
+Energie per oppervlakte wordt als enthalpie H geïntegreerd met dezelfde RK4-stappen van maximaal 60 s. Met substraatcapaciteit C, watermassa m en smeltpunt Tm = 273,15 K geldt:
+
+- H < 0: T = Tm + H/(C + m c_ice), alles ijs.
+- 0 ≤ H ≤ m L: T = Tm, vloeibare fractie H/(m L).
+- H > m L: T = Tm + (H − m L)/(C + m c_water), alles vloeibaar.
+
+Bij exact Tm begint water als ijs. Constante, afgeronde waarden: L = 333.500 J/kg, c_ice = 2.100 J/kg/K en c_water = 4.180 J/kg/K. Dit zijn benaderingen rond het vriespunt, geen volledige toestandsvergelijking. Referenties voor nauwkeurige eigenschappen: [NIST: Properties of Ice and Supercooled Water](https://www.nist.gov/publications/properties-ice-and-supercooled-water), [NIST water-tabellen](https://www.nist.gov/publications/thermodynamic-properties-water-tabulation-iapws-formulation-1995-thermodynamic) en [IAPWS smelt- en sublimatiecurven](https://iapws.org/technical-guidance/release/MeltSub).
+
+Instraling, emissie en intern transport gebruiken de temperatuur van iedere RK4-enthalpiestap. Intern transport blijft paarsgewijs conservatief. Het energiebudget vergelijkt de verandering in gemiddelde H met geïntegreerde instraling minus emissie; latente warmte wordt dus niet toegevoegd of weggegooid door een temperatuurcorrectie. Waterdiagnostiek toont totale, vloeibare en ijsmassa; beide fasen tellen op tot het vaste reservoir.
+
+Geldigheidsgebied: een pedagogisch zoetwatermodel met voorgeschreven vaste druk rond het smeltpunt. Het model berekent geen druk, atmosfeer, saliniteit, verdamping, sublimatie, koken, afvoer of ijsexpansie. Vloeibaar water op een atmosfeerloze echte planeet wordt hiermee niet voorspeld. Buiten het gebied rond freezing zijn de constante materiaalwaarden een sterke vereenvoudiging. Grote temperaturen geven geen realistische waterfase. Bond-albedo blijft uniform en onafhankelijk van ijs: de wit/blauwe kaart is geen nieuwe reflectieparameter. Werkelijke ijsbedekking kan niet uit één kolomtemperatuur worden afgeleid; de kaart mengt wit/blauw volgens ijsmassafractie. Waterbedekking betekent cellen met een reservoir, inclusief bevroren reservoirs.

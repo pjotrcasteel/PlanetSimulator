@@ -5,12 +5,12 @@
 <div class="shell">
     <header>
         <a class="brand" href="./"><span class="brand-mark">◉</span> PlanetSimulator</a>
-        <span class="milestone">MILESTONE 4 <span>·</span> BROWSERDEMO</span>
+        <span class="milestone">MILESTONE 5 <span>·</span> BROWSERDEMO</span>
     </header>
     <main>
         <div class="world-column">
         <section class="viewer" aria-label="Interactieve planeet">
-            <div class="viewer-heading"><span class="eyebrow">EEN WERELD IN WORDING</span><h1>Een planeet met klimaatzones.</h1></div>
+            <div class="viewer-heading"><span class="eyebrow">EEN WERELD IN WORDING</span><h1>Een wereld van land, water en ijs.</h1></div>
             <canvas id="planet-canvas" @ref="canvas" aria-label="3D-planeet: sleep om te draaien en scroll om te zoomen" tabindex="0"></canvas>
             <div class="viewer-bottom"><span class="status-dot"></span><span>@(session.Clock.IsPaused ? "Gepauzeerd" : "Simulatie actief")</span><span class="mouse-hint">Slepen om te draaien · scrollen om te zoomen</span></div>
             @if (error is not null)
@@ -33,8 +33,8 @@
             <h2>Van evenaar tot pool.</h2>
             <p class="intro">Verander de afstand tot de ster of de reflectie en ontdek hoe de planeet naar een nieuw temperatuurevenwicht beweegt.</p>
             <label for="climate-model">Klimaatmodel (wisselen herstart de tijd)</label>
-            <select id="climate-model" value="@(session.Regional is null ? "global" : "regional")" @onchange="SelectModel" disabled="@(!ready)">
-                <option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
+            <select id="climate-model" value="@(session.Regional is null ? "global" : session.Regional.Surface is null ? "regional" : "surface")" @onchange="SelectModel" disabled="@(!ready)">
+                <option value="surface">Land, water en ijs · milestone 5</option><option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
             </select>
             <div class="temperature-card"><span>GEMIDDELDE MODELTEMPERATUUR</span>
                 <strong id="temperature" data-kelvin="@F(snapshot.TemperatureKelvin, "F6")">@F(snapshot.TemperatureKelvin - 273.15) <small>°C</small></strong>
@@ -48,6 +48,16 @@
                     <div><span>Zonnedeclinatie</span><strong id="solar-declination">@F(regional.SolarDeclinationRadians * 180 / Math.PI)°</strong></div>
                     <div><span>Energiebudgetafwijking</span><strong id="regional-budget">@F(regional.BudgetErrorJoulesPerSquareMeter, "G3") J/m²</strong></div>
                 </div>
+            }
+            @if (snapshot.Regional?.Surface is { } water)
+            {
+                <div class="regional-summary" id="surface-summary" data-liquid-fraction="@F(water.LiquidMassFraction, "R")">
+                    <div><span>Waterbedekking</span><strong>@F(water.WaterCoveredFraction * 100)%</strong></div>
+                    <div><span>Vloeibaar / ijs (massa)</span><strong>@F(water.LiquidMassFraction * 100)% / @F((1 - water.LiquidMassFraction) * 100)%</strong></div>
+                    <div><span>Totale watermassa</span><strong>@F(water.TotalWaterMassKilograms, "G4") kg</strong></div>
+                    <div><span>Waterbudgetafwijking</span><strong id="water-budget">@F(water.WaterMassErrorKilograms, "G3") kg</strong></div>
+                </div>
+                <p class="field-hint">Synthetisch terrein (10 m reliëf), ondiepe reservoirs (3 m wereldwijd equivalent). Zet de temperatuurkaart uit om land, water en ijs te zien. Verlaag de sterafstand om het ijs te laten smelten.</p>
             }
             <div class="time-card"><span>VERSTREKEN SIMULATIETIJD</span><strong id="elapsed-days">@((session.Clock.ElapsedSeconds / 86400).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)) <small>dagen</small></strong></div>
             <div class="controls">
@@ -80,11 +90,11 @@
                 <p>AU = afstand aarde–zon. Reset herstart op 230 K met je huidige instellingen.</p>
             </div>
             <dl><div><dt>Straal</dt><dd>6.371 km</dd></div><div><dt>Zwaartekracht</dt><dd>@session.Planet.SurfaceGravity.ToString("F2") m/s²</dd></div><div><dt>Rotatieperiode</dt><dd>24 uur</dd></div><div><dt>Warmtecapaciteit</dt><dd>10 MJ/m²/K</dd></div></dl>
-            <div class="note"><strong>Een bewust eenvoudig model</strong><p>Regionale stralingsbalans en benaderd warmtetransport, zonder atmosfeer of broeikaseffect. Geen aardse klimaatvoorspelling. De temperatuurkaart volgt modeldata; de gewone oppervlaktekleuren zijn decoratief.</p></div>
+            <div class="note"><strong>Een bewust eenvoudig model</strong><p>Regionale stralingsbalans en benaderd warmtetransport, zonder atmosfeer of broeikaseffect. Geen aardse klimaatvoorspelling. De temperatuurkaart volgt modeldata; in het watermodel toont de oppervlaktekaart land, water en ijs. Faseovergangen veronderstellen vaste druk; atmosfeer, verdamping en afvoer volgen later. Reflectie blijft uniform.</p></div>
         </aside>
         <ExperimentPanel />
     </main>
-    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 4</span></footer>
+    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 5</span></footer>
 </div>
 
 @code {
@@ -168,7 +178,9 @@
 
     private void SelectModel(ChangeEventArgs args)
     {
-        session.SelectModel(args.Value?.ToString() == "regional" ? new RegionalParameters() : null, lifetime.Token);
+        var choice = args.Value?.ToString();
+        session.SelectModel(choice is "regional" or "surface" ? new RegionalParameters() : null, lifetime.Token);
+        if (choice == "surface") session.SelectSurface(new SurfaceParameters(), lifetime.Token);
         if (session.Regional is not null) session.Clock.Speed = Math.Min(session.Clock.Speed, 86400);
         snapshot = session.Snapshot();
     }

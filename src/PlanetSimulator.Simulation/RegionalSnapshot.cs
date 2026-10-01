@@ -5,6 +5,7 @@
 /// </summary>
 public sealed record RegionalSnapshot
 {
+    public SurfaceSnapshot? Surface { get; init; }
     public required IReadOnlyList<double> TemperaturesKelvin { get; init; }
     public required double MinimumTemperatureKelvin { get; init; }
     public required double MaximumTemperatureKelvin { get; init; }

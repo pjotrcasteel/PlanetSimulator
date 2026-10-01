@@ -39,6 +39,13 @@ public static class ScenarioJson
                 if (!regional.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
                     throw new ArgumentException($"Regionale instelling {name} ontbreekt of is geen getal.");
         }
+        if (document.RootElement.TryGetProperty("surface", out var surface) && surface.ValueKind != JsonValueKind.Null)
+        {
+            if (surface.ValueKind != JsonValueKind.Object) throw new ArgumentException("Oppervlakte-instellingen zijn ongeldig.");
+            foreach (var name in new[] { "reliefMeters", "waterEquivalentDepthMeters" })
+                if (!surface.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
+                    throw new ArgumentException($"Oppervlakte-instelling {name} ontbreekt of is geen getal.");
+        }
         var scenario = JsonSerializer.Deserialize(json, Context.ExperimentScenario) ?? throw new ArgumentException("Scenario ontbreekt.");
         scenario.Validate();
         return scenario;

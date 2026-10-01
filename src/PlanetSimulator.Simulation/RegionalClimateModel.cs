@@ -11,6 +11,9 @@ public sealed class RegionalClimateModel
     private readonly (int First, int Second, double Conductance)[] edges;
     private readonly CompensatedSum absorbedEnergy = new();
     private readonly CompensatedSum emittedEnergy = new();
+    private readonly double[] enthalpies, stageTemperatures;
+    private readonly double initialEnthalpy;
+    public SurfaceReservoirs? Surface { get; }
     public SphericalGrid Grid { get; } = new();
     public ClimateParameters Climate { get; private set; }
     public RegionalParameters Parameters { get; private set; }
@@ -26,7 +29,8 @@ public sealed class RegionalClimateModel
     public double EnergyBalanceErrorJoulesPerSquareMeter => StoredEnergyChangeJoulesPerSquareMeter
         - (absorbedEnergy.Value - emittedEnergy.Value);
 
-    public RegionalClimateModel(ClimateParameters? climate = null, RegionalParameters? parameters = null, IReadOnlyList<double>? initialTemperatures = null)
+    public RegionalClimateModel(ClimateParameters? climate = null, RegionalParameters? parameters = null, IReadOnlyList<double>? initialTemperatures = null,
+        SurfaceParameters? surface = null)
     {
         Climate = climate ?? new ClimateParameters();
         Parameters = parameters ?? new RegionalParameters();
@@ -36,6 +40,10 @@ public sealed class RegionalClimateModel
         temperatures = initialTemperatures?.ToArray() ?? Enumerable.Repeat(Climate.InitialTemperatureKelvin, count).ToArray();
         if (initialTemperatures is not null) initialMeanTemperature = temperatures.Average();
         else initialMeanTemperature = Climate.InitialTemperatureKelvin;
+        Surface = surface is null ? null : new SurfaceReservoirs(Grid, surface);
+        enthalpies = temperatures.Select((t, i) => WaterThermodynamics.Enthalpy(t, Surface?.WaterMassPerSquareMeter[i] ?? 0, Climate.ArealHeatCapacity)).ToArray();
+        initialEnthalpy = enthalpies.Average();
+        stageTemperatures = new double[count];
         TemperaturesKelvin = Array.AsReadOnly(temperatures);
         normalX = new double[count]; normalY = new double[count]; normalZ = new double[count];
         firstRate = new double[count]; secondRate = new double[count]; thirdRate = new double[count]; fourthRate = new double[count]; temporary = new double[count];
@@ -50,7 +58,8 @@ public sealed class RegionalClimateModel
     }
 
     private readonly double initialMeanTemperature;
-    public double StoredEnergyChangeJoulesPerSquareMeter => Climate.ArealHeatCapacity * (MeanTemperatureKelvin - initialMeanTemperature);
+    public double StoredEnergyChangeJoulesPerSquareMeter => Surface is null
+        ? Climate.ArealHeatCapacity * (MeanTemperatureKelvin - initialMeanTemperature) : enthalpies.Average() - initialEnthalpy;
 
     public void SetForcing(double distanceAstronomicalUnits, double bondAlbedo, CancellationToken cancellationToken)
     {
@@ -96,15 +105,19 @@ public sealed class RegionalClimateModel
         FillSunlight(ElapsedSeconds, initialSunlight);
         FillSunlight(ElapsedSeconds + seconds / 2, middleSunlight);
         FillSunlight(ElapsedSeconds + seconds, finalSunlight);
-        var firstEmission = Rate(temperatures, initialSunlight, firstRate);
-        Prepare(temperatures, firstRate, seconds / 2);
+        var state = Surface is null ? temperatures : enthalpies;
+        var firstEmission = Rate(state, initialSunlight, firstRate);
+        Prepare(state, firstRate, seconds / 2);
         var secondEmission = Rate(temporary, middleSunlight, secondRate);
-        Prepare(temperatures, secondRate, seconds / 2);
+        Prepare(state, secondRate, seconds / 2);
         var thirdEmission = Rate(temporary, middleSunlight, thirdRate);
-        Prepare(temperatures, thirdRate, seconds);
+        Prepare(state, thirdRate, seconds);
         var fourthEmission = Rate(temporary, finalSunlight, fourthRate);
         for (var index = 0; index < temperatures.Length; index++)
-            temperatures[index] += seconds * (firstRate[index] + 2 * secondRate[index] + 2 * thirdRate[index] + fourthRate[index]) / 6;
+            state[index] += seconds * (firstRate[index] + 2 * secondRate[index] + 2 * thirdRate[index] + fourthRate[index]) / 6;
+        if (Surface is not null)
+            for (var index = 0; index < temperatures.Length; index++)
+                temperatures[index] = WaterThermodynamics.Temperature(enthalpies[index], Surface.WaterMassPerSquareMeter[index], Climate.ArealHeatCapacity);
         absorbedEnergy.Add(AbsorbedWattsPerSquareMeter * seconds);
         emittedEnergy.Add((firstEmission + 2 * secondEmission + 2 * thirdEmission + fourthEmission) * seconds / 6);
         ElapsedSeconds += seconds;
@@ -113,6 +126,7 @@ public sealed class RegionalClimateModel
     public RegionalSnapshot Snapshot() => new()
     {
         TemperaturesKelvin = temperatures.ToArray(),
+        Surface = Surface?.Snapshot(enthalpies),
         MinimumTemperatureKelvin = temperatures.Min(),
         MaximumTemperatureKelvin = temperatures.Max(),
         NorthMeanTemperatureKelvin = temperatures.Take(temperatures.Length / 2).Average(),
@@ -141,15 +155,23 @@ public sealed class RegionalClimateModel
 
     private double Rate(double[] state, double[] sunlight, double[] rate)
     {
+        var thermalState = state;
+        if (Surface is not null)
+        {
+            for (var index = 0; index < state.Length; index++)
+                stageTemperatures[index] = WaterThermodynamics.Temperature(state[index], Surface.WaterMassPerSquareMeter[index], Climate.ArealHeatCapacity);
+            thermalState = stageTemperatures;
+        }
         var totalEmission = 0d;
         for (var index = 0; index < state.Length; index++)
         {
-            var emission = Emission(state[index]);
+            var emission = Emission(thermalState[index]);
             totalEmission += emission;
             rate[index] = sunlight[index] - emission;
         }
-        AddTransport(state, rate);
-        for (var index = 0; index < rate.Length; index++) rate[index] /= Climate.ArealHeatCapacity;
+        AddTransport(thermalState, rate);
+        if (Surface is null)
+            for (var index = 0; index < rate.Length; index++) rate[index] /= Climate.ArealHeatCapacity;
         return totalEmission / state.Length;
     }
 

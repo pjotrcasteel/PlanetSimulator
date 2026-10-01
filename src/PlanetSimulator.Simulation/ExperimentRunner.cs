@@ -17,7 +17,7 @@ public sealed class ExperimentRunner
     {
         // Own a validated copy: edits in a host cannot alter an experiment that is already running.
         Scenario = ScenarioJson.Deserialize(ScenarioJson.Serialize(scenario));
-        session = new SimulationSession(Scenario.Climate, Scenario.Regional);
+        session = new SimulationSession(Scenario.Climate, Scenario.Regional, Scenario.Surface);
         session.Clock.Speed = SimulationClock.StepSeconds;
         Sample();
     }
@@ -49,7 +49,11 @@ public sealed class ExperimentRunner
     public ExperimentResult GetResult()
     {
         if (!IsComplete) throw new InvalidOperationException("Het experiment is nog niet voltooid.");
-        return new ExperimentResult(Scenario, samples.ToArray()) { FinalRegions = session.Regional?.TemperaturesKelvin.ToArray() ?? [] };
+        return new ExperimentResult(Scenario, samples.ToArray())
+        {
+            FinalRegions = session.Regional?.TemperaturesKelvin.ToArray() ?? [],
+            FinalSurface = session.Snapshot().Regional?.Surface,
+        };
     }
 
     private void Sample()

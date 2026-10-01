@@ -114,6 +114,11 @@ public sealed class PlanetGame : Game
             if (session.Regional is not null) Clock.Speed = Math.Min(Clock.Speed, 86400);
             loadedScenario = null; textureTick = -1;
         }
+        if (Pressed(keyboard, Keys.B) && session.Regional is { } surfaceModel)
+        {
+            session.SelectSurface(surfaceModel.Surface is null ? new SurfaceParameters() : null, lifetime.Token);
+            loadedScenario = null; textureTick = -1;
+        }
         if (Pressed(keyboard, Keys.T)) { temperatureMap = !temperatureMap; textureTick = -1; }
         if (Pressed(keyboard, Keys.O)) ChangeRegional(5, 0);
         if (Pressed(keyboard, Keys.K)) ChangeRegional(-5, 0);
@@ -230,7 +235,9 @@ public sealed class PlanetGame : Game
         loadedScenario = null;
     }
 
-    private ExperimentScenario CurrentScenario() => session.Regional is { } regional
+    private ExperimentScenario CurrentScenario() => session.Regional is { Surface: { } reservoir } waterModel
+        ? ExperimentScenario.CreateSurface("Desktop water experiment", 30, session.Climate.Parameters, waterModel.Parameters, reservoir.Parameters)
+        : session.Regional is { } regional
         ? ExperimentScenario.CreateRegional("Desktop regional experiment", 30, session.Climate.Parameters, regional.Parameters)
         : ExperimentScenario.Create("Desktop experiment", 365, session.Climate.Parameters);
 
@@ -246,10 +253,18 @@ public sealed class PlanetGame : Game
     {
         if (textureTick == Clock.TickCount) return;
         textureTick = Clock.TickCount;
-        if (session.Regional is not { } regional || !temperatureMap) { surface.SetData(decorativePixels); return; }
+        if (session.Regional is not { } regional || !temperatureMap && regional.Surface is null) { surface.SetData(decorativePixels); return; }
+        var water = regional.Snapshot().Surface;
         for (var index = 0; index < mapPixels.Length; index++)
         {
-            var colour = TemperaturePalette.ForKelvin(regional.TemperaturesKelvin[textureCells[index]]);
+            var cell = textureCells[index];
+            var colour = TemperaturePalette.ForKelvin(regional.TemperaturesKelvin[cell]);
+            if (!temperatureMap && water is not null)
+            {
+                var mass = water.WaterMassPerSquareMeter[cell];
+                colour = mass == 0 ? new Color(118, 137, 80)
+                    : Color.Lerp(new Color(25, 89, 145), new Color(225, 239, 242), (float)(water.IceMassPerSquareMeter[cell] / mass));
+            }
             mapPixels[index] = textureBorders[index] ? new Color(colour.ToVector3() * 0.75f) : colour;
         }
         surface.SetData(mapPixels);
@@ -291,7 +306,7 @@ public sealed class PlanetGame : Game
         var mint = new Color(139, 216, 191);
         var muted = new Color(159, 177, 193);
         spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 4", new Vector2(24, 24), mint);
+        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 5", new Vector2(24, 24), mint);
         var lines = new[]
         {
             $"TEMPERATURE: {F(climate.TemperatureKelvin)} K / {F(climate.TemperatureKelvin - 273.15)} C",
@@ -317,11 +332,17 @@ public sealed class PlanetGame : Game
                 new Vector2(24, 292), mint, 1);
             text.Draw(spriteBatch, $"BUDGET ERROR: {region.BudgetErrorJoulesPerSquareMeter:G3} J/M2", new Vector2(24, 309), muted, 1);
         }
+        if (climate.Regional?.Surface is { } water)
+        {
+            text.Draw(spriteBatch, $"WATER: {water.TotalWaterMassKilograms:G3} KG / LIQUID: {F(water.LiquidMassFraction * 100)}%",
+                new Vector2(24, 326), mint, 1);
+            text.Draw(spriteBatch, $"MASS ERROR: {water.WaterMassErrorKilograms:G3} KG", new Vector2(24, 343), muted, 1);
+        }
         var bottom = GraphicsDevice.Viewport.Height - 113;
         text.Draw(spriteBatch, "DRAG: ORBIT / WHEEL: ZOOM / SPACE: PAUSE / R: RESET", new Vector2(24, bottom), muted);
         text.Draw(spriteBatch, "1-4: SPEED / A-Z: ALBEDO / PAGE UP-DOWN: DISTANCE / W: WIREFRAME", new Vector2(24, bottom + 23), muted);
-        text.Draw(spriteBatch, "C: MODEL / T: MAP / O-K: TILT / H-J: HEAT TRANSPORT", new Vector2(24, bottom + 46), muted);
-        text.Draw(spriteBatch, "THERMAL SCALE: 170-330 K / NO ATMOSPHERE OR OCEANS", new Vector2(24, bottom + 69), mint);
+        text.Draw(spriteBatch, "C: MODEL / B: WATER / T: MAP / O-K: TILT / H-J: TRANSPORT", new Vector2(24, bottom + 46), muted);
+        text.Draw(spriteBatch, "THERMAL SCALE: 170-330 K / PRESCRIBED PRESSURE", new Vector2(24, bottom + 69), mint);
         spriteBatch.End();
     }
 

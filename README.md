@@ -69,3 +69,6 @@ Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle
 GitHub Actions bouwt en test op Windows, maakt een zelfstandige Windows-download en publiceert na geslaagde browsercontroles naar Pages. Downloadbare pakketten en screenshots staan bij de workflow. De repository blijft private.
 
 Zie [scenario’s en experimenten](docs/EXPERIMENTS.md), [wetenschappelijke aannames](docs/SCIENCE.md), [roadmap](docs/ROADMAP.md), [validatiestatus](docs/VALIDATION.md) en [Pages-inrichting](docs/WEB-DEMO.md).
+
+
+Milestone 5 voegt **Land, water en ijs** toe aan de modelkeuze. Zet de temperatuurkaart uit voor groen land, blauw water en wit ijs. De fysieke toestand komt uit C#; het terrein is voorlopig een grof synthetisch raster op een gladde bol. In de desktopapp schakelt **B** waterreservoirs aan/uit (herstart); **T** wisselt de kaart. Experimenten kunnen reliëf en waterinventaris instellen en dagelijkse waterdiagnostiek plus eindkaarten exporteren. Begin rond 273,15 K met ondiep water om de faseovergang snel te onderzoeken. Zie SCIENCE.md voor de vaste-drukaanname en beperkingen.

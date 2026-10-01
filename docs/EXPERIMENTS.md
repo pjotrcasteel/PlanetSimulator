@@ -39,3 +39,10 @@ Kies in het experimentformulier **Regionaal · 288 cellen**. Ashelling, D en jaa
 Modelidentiteit: `regional-blackbody-rk4-60s-12x24-v1`. Oude uniforme scenario’s blijven `global-blackbody-rk4-60s-v1`; geen stilzwijgende omzetting. Dezelfde daggrenzen en forcingwijzigingen gelden. Zie [regional-seasons.json](../examples/regional-seasons.json). De desktop-CLI schrijft bij regionale scenario’s ook `regions.csv`. CI vergelijkt zowel dagelijkse monsters als iedere eindcel tussen browser en desktop.
 
 Desktop C wisselt model en herstart de tijd; T kiest kaart/gewoon oppervlak; O/K wijzigen ashelling; H/J wijzigen D. Parameterwijzigingen bewaren huidige temperaturen. G zonder geladen scenario kiest 30 dagen regionaal of 365 dagen uniform. S bewaart scenario en laatste resultaten; L plus G herhaalt een geladen recept.
+
+
+## Waterexperimenten
+
+Kies `Land, water en ijs`. De JSON bevat `surface.reliefMeters` en `surface.waterEquivalentDepthMeters` en modelversie `surface-enthalpy-rk4-60s-12x24-v1`. CSV voegt totale watermassa, vloeibare massafractie en massa-afwijking toe. De regionale eindkaart bevat ook hoogte, totale watermassa, vloeibare massa en ijsmassa per m². Oude globale en regionale exports houden hun modelidentiteit en kolommen.
+
+`examples/shallow-melting.json` begint op het smeltpunt met een vlakke wereld en 1 cm water. Bij deze temperatuur is de beginfase ijs; sterke instraling smelt het overdag. Herhaal met luminositeit 0 en begintemperatuur 273,16 K om bevriezen te onderzoeken. Dit is een faseproef bij voorgeschreven druk, geen echte klimaatvoorspelling.

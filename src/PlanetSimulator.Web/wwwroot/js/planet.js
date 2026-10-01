@@ -23,6 +23,8 @@ in vec2 coordinates;
 uniform bool wireframe;
 uniform bool temperatureMap;
 uniform sampler2D temperatures;
+uniform sampler2D reservoirs;
+uniform bool surfaceModel;
 uniform vec3 sunlight;
 out vec4 color;
 void main() {
@@ -44,6 +46,12 @@ void main() {
         heat *= 1.0 - 0.25 * (1.0 - smoothstep(0.3, 1.0, min(borders.x, borders.y)));
         color = vec4(heat, 1.0);
         return;
+    }
+    if (surfaceModel) {
+        vec2 cellUv = vec2(coordinates.x, (1.0 - cos(coordinates.y * 3.14159265)) * 0.5);
+        vec2 water = texture(reservoirs, cellUv).rg;
+        surface = water.r == 0.0 ? vec3(118.,137.,80.) / 255.
+            : mix(vec3(25.,89.,145.) / 255., vec3(225.,239.,242.) / 255., water.g);
     }
     float light = max(dot(normalize(normal), normalize(sunlight)), 0.0);
     color = vec4(surface * (0.09 + light * 0.91), 1.0);
@@ -136,9 +144,18 @@ export async function start(canvas, reference) {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 24, 12, 0, gl.RED, gl.FLOAT, new Float32Array(288).fill(230));
+    const reservoirTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, reservoirTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, 24, 12, 0, gl.RG, gl.FLOAT, new Float32Array(576));
+    gl.uniform1i(gl.getUniformLocation(program, 'reservoirs'), 1);
     const controller = new AbortController();
     const options = { signal: controller.signal };
     const state = { gl, program, canvas, reference, vao, vertexBuffer, triangleBuffer, lineBuffer, controller,
+        reservoirTexture, surfaceModel: false, surfaceLocation: gl.getUniformLocation(program, 'surfaceModel'),
         temperatureTexture, regional: false, temperatureMap: true, declination: 0, sphere, yaw: 0.5, pitch: 0.25, distance: 3.5, rotation: 0, wireframe: false, stopped: false,
         pending: false, lastTick: performance.now(), frame: 0, drag: null,
         matrixLocation: gl.getUniformLocation(program, 'viewProjection'),
@@ -180,13 +197,26 @@ export async function start(canvas, reference) {
         return response.json();
     }).then(build => {
         const label = document.getElementById('build-version');
-        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 4 · lokaal' : `Milestone 4 · ${build.commit.slice(0, 7)}`;
+        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 5 · lokaal' : `Milestone 5 · ${build.commit.slice(0, 7)}`;
     }).catch(() => {});
 }
 
 function updateSnapshot(state, snapshot) {
     state.rotation = snapshot.rotationRadians;
     state.regional = !!snapshot.regional;
+    state.surfaceModel = !!snapshot.regional?.surface;
+    if (state.surfaceModel) {
+        const surface = snapshot.regional.surface;
+        const field = new Float32Array(576);
+        for (let i = 0; i < 288; i++) {
+            field[2 * i] = surface.waterMassPerSquareMeter[i];
+            field[2 * i + 1] = field[2 * i] === 0 ? 0 : surface.iceMassPerSquareMeter[i] / surface.waterMassPerSquareMeter[i];
+        }
+        state.gl.activeTexture(state.gl.TEXTURE1);
+        state.gl.bindTexture(state.gl.TEXTURE_2D, state.reservoirTexture);
+        state.gl.texSubImage2D(state.gl.TEXTURE_2D, 0, 0, 0, 24, 12, state.gl.RG, state.gl.FLOAT, field);
+        state.gl.activeTexture(state.gl.TEXTURE0);
+    }
     if (snapshot.regional) {
         state.declination = snapshot.regional.solarDeclinationRadians;
         state.gl.bindTexture(state.gl.TEXTURE_2D, state.temperatureTexture);
@@ -242,9 +272,13 @@ function draw(state) {
     gl.uniformMatrix4fv(state.matrixLocation, false, cameraMatrix(state.yaw, state.pitch, state.distance, width / height));
     gl.uniform1f(state.rotationLocation, state.rotation);
     gl.uniform1i(state.wireframeLocation, state.wireframe ? 1 : 0);
+    gl.uniform1i(state.surfaceLocation, state.surfaceModel ? 1 : 0);
     gl.uniform1i(state.mapLocation, state.regional && state.temperatureMap ? 1 : 0);
     gl.uniform3f(state.sunlightLocation, state.regional ? Math.cos(state.declination) : 1,
         state.regional ? Math.sin(state.declination) : 0.4, state.regional ? 0 : 0.5);
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, state.reservoirTexture);
+    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, state.temperatureTexture);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.wireframe ? state.lineBuffer : state.triangleBuffer);
     gl.drawElements(state.wireframe ? gl.LINES : gl.TRIANGLES,
@@ -274,5 +308,6 @@ export function stop() {
     state.gl.deleteBuffer(state.lineBuffer);
     state.gl.deleteVertexArray(state.vao);
     state.gl.deleteTexture(state.temperatureTexture);
+    state.gl.deleteTexture(state.reservoirTexture);
     state.gl.deleteProgram(state.program);
 }

@@ -10,6 +10,9 @@ public sealed record ExperimentScenario
     public const int CurrentFormatVersion = 1;
     public const string CurrentModelVersion = "global-blackbody-rk4-60s-v1";
     public const string RegionalModelVersion = "regional-blackbody-rk4-60s-12x24-v1";
+    public const string SurfaceModelVersion = "surface-enthalpy-rk4-60s-12x24-v1";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public SurfaceParameters? Surface { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RegionalParameters? Regional { get; init; }
     public required int FormatVersion { get; init; }
@@ -42,10 +45,20 @@ public sealed record ExperimentScenario
         return scenario;
     }
 
+    public static ExperimentScenario CreateSurface(string name, int durationDays, ClimateParameters climate,
+        RegionalParameters regional, SurfaceParameters surface, params ForcingChange[] changes)
+    {
+        ArgumentNullException.ThrowIfNull(surface);
+        var scenario = CreateRegional(name, durationDays, climate, regional, changes) with { Surface = surface, ModelVersion = SurfaceModelVersion };
+        scenario.Validate();
+        return scenario;
+    }
+
     public void Validate()
     {
-        if (FormatVersion != CurrentFormatVersion || ModelVersion != (Regional is null ? CurrentModelVersion : RegionalModelVersion))
+        if (FormatVersion != CurrentFormatVersion || ModelVersion != (Surface is not null ? SurfaceModelVersion : Regional is null ? CurrentModelVersion : RegionalModelVersion))
             throw new ArgumentException("Onbekende scenario- of modelversie.");
+        if (Surface is not null && Regional is null) throw new ArgumentException("Waterreservoirs vereisen een regionaal model.");
         if (string.IsNullOrWhiteSpace(Name) || Name.Length > 80) throw new ArgumentException("Geef een naam van 1–80 tekens.");
         if (DurationDays is < 1 or > 730) throw new ArgumentException("De duur moet 1–730 dagen zijn.");
         if (Climate is null) throw new ArgumentException("Beginwaarden ontbreken.");

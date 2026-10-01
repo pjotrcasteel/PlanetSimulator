@@ -14,10 +14,11 @@ public sealed class SimulationSession
     public double CumulativeEmittedJoulesPerSquareMeter => Regional?.CumulativeEmittedJoulesPerSquareMeter ?? Climate.CumulativeEmittedJoulesPerSquareMeter;
     public double EnergyBalanceErrorJoulesPerSquareMeter => Regional?.EnergyBalanceErrorJoulesPerSquareMeter ?? Climate.EnergyBalanceErrorJoulesPerSquareMeter;
 
-    public SimulationSession(ClimateParameters? parameters = null, RegionalParameters? regional = null)
+    public SimulationSession(ClimateParameters? parameters = null, RegionalParameters? regional = null, SurfaceParameters? surface = null)
     {
+        if (surface is not null && regional is null) throw new ArgumentException("Surface reservoirs require a regional model.", nameof(surface));
         Climate = new EnergyBalanceModel(parameters);
-        if (regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, regional);
+        if (regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, regional, surface: surface);
     }
 
     public SimulationSnapshot Advance(double realSeconds, CancellationToken cancellationToken)
@@ -61,11 +62,19 @@ public sealed class SimulationSession
         Clock.Reset();
     }
 
+    public void SelectSurface(SurfaceParameters? surface, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Regional is null) throw new InvalidOperationException("Surface reservoirs require a regional model.");
+        Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: surface);
+        Clock.Reset();
+    }
+
     public void Reset(CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         Clock.Reset();
         Climate = new EnergyBalanceModel(Climate.Parameters);
-        if (Regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters);
+        if (Regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: Regional.Surface?.Parameters);
     }
 }
