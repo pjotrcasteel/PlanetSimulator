@@ -9,7 +9,7 @@
         <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
             <fieldset disabled="@busy">
                 <label for="experiment-model">Model voor dit experiment</label>
-                <select id="experiment-model" @bind="regionalModel"><option value="false">Uniform · milestone 2</option><option value="true">Regionaal · 288 cellen</option></select>
+                <select id="experiment-model" value="@(regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option></select>
                 @if (regionalModel)
                 {
                     <div class="parameter-grid">
@@ -146,6 +146,8 @@
         return regionalModel ? ExperimentScenario.CreateRegional(name, days, climate, new RegionalParameters(tilt, diffusion, yearDays), events)
             : ExperimentScenario.Create(name, days, climate, events);
     }
+
+    private void SelectExperimentModel(ChangeEventArgs args) => regionalModel = args.Value?.ToString() == "regional";
 
     private void AddChange() => changes.Add(new ChangeDraft { Day = changes.Count == 0 ? Math.Min(30, days - 1) : changes[^1].Day + 1, Distance = distance, Albedo = albedo });
 

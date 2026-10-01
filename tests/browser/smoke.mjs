@@ -22,9 +22,10 @@ const server = createServer(async (request, response) => {
     }
 });
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
+let page;
 const browser = await chromium.launch({ args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader'] });
 try {
-    const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+    page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     page.on('response', response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
@@ -167,7 +168,8 @@ try {
     assert.equal(await page.locator('#heat-diffusion').inputValue(), '1.2');
     await page.locator('#scenario-name').fill('Regionale referentie');
     await page.locator('#experiment-days').fill('3');
-    await page.selectOption('#experiment-model', 'true');
+    await page.selectOption('#experiment-model', 'regional');
+    await page.waitForFunction(() => document.querySelector('#experiment-tilt') !== null);
     await page.locator('#experiment-tilt').fill('45');
     await page.locator('#experiment-diffusion').fill('1.2');
     await page.locator('#run-experiment').click();
@@ -212,6 +214,10 @@ try {
     assert.equal(await page.locator('.error').count(), 0);
     assert.deepEqual(errors, []);
     console.log('Published Blazor app: climate, scenarios, scheduled changes, comparison, spherical climate, tilt, conservative budgets, regional replay, JSON/CSV replay, browser storage, WebGL and mobile layout passed.');
+} catch (error) {
+    await mkdir('artifacts/browser', { recursive: true });
+    if (page) await page.screenshot({ path: 'artifacts/browser/failure.png', fullPage: true }).catch(() => {});
+    throw error;
 } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));
