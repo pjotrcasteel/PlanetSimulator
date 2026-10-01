@@ -21,6 +21,9 @@ precision highp float;
 in vec3 normal;
 in vec2 coordinates;
 uniform bool wireframe;
+uniform bool temperatureMap;
+uniform sampler2D temperatures;
+uniform vec3 sunlight;
 out vec4 color;
 void main() {
     float band = 0.5 + 0.5 * sin(coordinates.x * 18.8495559 + coordinates.y * 5.12);
@@ -30,7 +33,19 @@ void main() {
     float grid = 1.0 - smoothstep(0.4, 1.2, min(edges.x, edges.y));
     surface = mix(surface, vec3(0.196, 0.298, 0.361), grid * 0.65);
     if (wireframe) surface = vec3(0.45, 0.8, 0.72);
-    float light = max(dot(normalize(normal), normalize(vec3(1.0, 0.4, 0.5))), 0.0);
+    if (temperatureMap) {
+        vec2 cellUv = vec2(coordinates.x, (1.0 - cos(coordinates.y * 3.14159265)) * 0.5);
+        float value = clamp((texture(temperatures, cellUv).r - 170.0) / 160.0, 0.0, 1.0) * 4.0;
+        vec3 a = vec3(39.,74.,142.) / 255., b = vec3(59.,171.,193.) / 255.;
+        vec3 c = vec3(122.,203.,164.) / 255., d = vec3(239.,196.,101.) / 255., e = vec3(217.,88.,73.) / 255.;
+        vec3 heat = value < 1. ? mix(a,b,value) : value < 2. ? mix(b,c,value-1.) : value < 3. ? mix(c,d,value-2.) : mix(d,e,value-3.);
+        vec2 cells = cellUv * vec2(24.,12.);
+        vec2 borders = abs(fract(cells - 0.5) - 0.5) / max(fwidth(cells), vec2(0.0001));
+        heat *= 1.0 - 0.25 * (1.0 - smoothstep(0.3, 1.0, min(borders.x, borders.y)));
+        color = vec4(heat, 1.0);
+        return;
+    }
+    float light = max(dot(normalize(normal), normalize(sunlight)), 0.0);
     color = vec4(surface * (0.09 + light * 0.91), 1.0);
 }`;
 
@@ -114,13 +129,22 @@ export async function start(canvas, reference) {
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere.triangles, gl.STATIC_DRAW);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, lineBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere.lines, gl.STATIC_DRAW);
+    const temperatureTexture = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, temperatureTexture);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.R32F, 24, 12, 0, gl.RED, gl.FLOAT, new Float32Array(288).fill(230));
     const controller = new AbortController();
     const options = { signal: controller.signal };
     const state = { gl, program, canvas, reference, vao, vertexBuffer, triangleBuffer, lineBuffer, controller,
-        sphere, yaw: 0.5, pitch: 0.25, distance: 3.5, rotation: 0, wireframe: false, stopped: false,
+        temperatureTexture, regional: false, temperatureMap: true, declination: 0, sphere, yaw: 0.5, pitch: 0.25, distance: 3.5, rotation: 0, wireframe: false, stopped: false,
         pending: false, lastTick: performance.now(), frame: 0, drag: null,
         matrixLocation: gl.getUniformLocation(program, 'viewProjection'),
         rotationLocation: gl.getUniformLocation(program, 'rotation'),
+        mapLocation: gl.getUniformLocation(program, 'temperatureMap'),
+        sunlightLocation: gl.getUniformLocation(program, 'sunlight'),
         wireframeLocation: gl.getUniformLocation(program, 'wireframe') };
     active = state;
     canvas.addEventListener('pointerdown', event => {
@@ -149,16 +173,29 @@ export async function start(canvas, reference) {
     }, options);
     document.addEventListener('visibilitychange', () => { state.lastTick = performance.now(); }, options);
     const snapshot = await reference.invokeMethodAsync('Advance', 0);
-    state.rotation = snapshot.rotationRadians;
+    updateSnapshot(state, snapshot);
     state.frame = requestAnimationFrame(now => animate(state, now));
     fetch(new URL('build.json', document.baseURI)).then(response => {
         if (!response.ok) return null;
         return response.json();
     }).then(build => {
         const label = document.getElementById('build-version');
-        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 3 · lokaal' : `Milestone 3 · ${build.commit.slice(0, 7)}`;
+        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 4 · lokaal' : `Milestone 4 · ${build.commit.slice(0, 7)}`;
     }).catch(() => {});
 }
+
+function updateSnapshot(state, snapshot) {
+    state.rotation = snapshot.rotationRadians;
+    state.regional = !!snapshot.regional;
+    if (snapshot.regional) {
+        state.declination = snapshot.regional.solarDeclinationRadians;
+        state.gl.bindTexture(state.gl.TEXTURE_2D, state.temperatureTexture);
+        state.gl.texSubImage2D(state.gl.TEXTURE_2D, 0, 0, 0, 24, 12, state.gl.RED, state.gl.FLOAT,
+            new Float32Array(snapshot.regional.temperaturesKelvin));
+    }
+}
+
+export function setTemperatureMap(value) { if (active) active.temperatureMap = value; }
 
 function showError(message) {
     const element = document.getElementById('blazor-error-ui');
@@ -175,7 +212,7 @@ function animate(state, now) {
         state.lastTick = now;
         state.pending = true;
         state.reference.invokeMethodAsync('Advance', seconds).then(snapshot => {
-            if (!state.stopped) state.rotation = snapshot.rotationRadians;
+            if (!state.stopped) updateSnapshot(state, snapshot);
         }).catch(() => {
             if (!state.stopped) {
                 state.stopped = true;
@@ -205,6 +242,10 @@ function draw(state) {
     gl.uniformMatrix4fv(state.matrixLocation, false, cameraMatrix(state.yaw, state.pitch, state.distance, width / height));
     gl.uniform1f(state.rotationLocation, state.rotation);
     gl.uniform1i(state.wireframeLocation, state.wireframe ? 1 : 0);
+    gl.uniform1i(state.mapLocation, state.regional && state.temperatureMap ? 1 : 0);
+    gl.uniform3f(state.sunlightLocation, state.regional ? Math.cos(state.declination) : 1,
+        state.regional ? Math.sin(state.declination) : 0.4, state.regional ? 0 : 0.5);
+    gl.bindTexture(gl.TEXTURE_2D, state.temperatureTexture);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, state.wireframe ? state.lineBuffer : state.triangleBuffer);
     gl.drawElements(state.wireframe ? gl.LINES : gl.TRIANGLES,
         state.wireframe ? state.sphere.lines.length : state.sphere.triangles.length, gl.UNSIGNED_SHORT, 0);
@@ -232,5 +273,6 @@ export function stop() {
     state.gl.deleteBuffer(state.triangleBuffer);
     state.gl.deleteBuffer(state.lineBuffer);
     state.gl.deleteVertexArray(state.vao);
+    state.gl.deleteTexture(state.temperatureTexture);
     state.gl.deleteProgram(state.program);
 }

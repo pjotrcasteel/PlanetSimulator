@@ -31,3 +31,11 @@ De importer weigert onbekende versies/velden, ontbrekende beginwaarden, ongeldig
 CSV is UTF-8, komma-gescheiden, met invariant decimaalpunt en round-trip getallen. Kolomkoppen bevatten SI-eenheden. Dag 0 plus één monster per voltooide dag geeft N+1 monsters. CSV bevat geen formulecellen of vrije scenarionamen. Bewaar het bijbehorende JSON-recept voor modelidentiteit en beginwaarden.
 
 Tests eisen identieke monsters/CSV na JSON-replay binnen dezelfde runtime. Een CI-controle herhaalt een echte WASM-browserexport in de desktophost en vergelijkt alle kolommen met expliciete toleranties (zie VALIDATION.md). Dit is geen bewijs van natuurkundige onderzoeksnauwkeurigheid; de aannames uit SCIENCE.md blijven gelden.
+
+## Regionale experimenten (milestone 4)
+
+Kies in het experimentformulier **Regionaal · 288 cellen**. Ashelling, D en jaarlengte horen bij het JSON-recept. Begin met 3–30 dagen; regionale runs rekenen iedere cel uit en duren langer. De groene grafiek is het oppervlaktegemiddelde. Daginspectie toont ook celuitersten en hemisfeergemiddelden. Dagelijkse CSV heeft vier extra temperatuurkolommen. **Laatste regiokaart (CSV)** bevat alle 288 eindtemperaturen met coördinaten en celoppervlakte. Die kaart betreft het einde van de run, ongeacht de gekozen inspectiedag.
+
+Modelidentiteit: `regional-blackbody-rk4-60s-12x24-v1`. Oude uniforme scenario’s blijven `global-blackbody-rk4-60s-v1`; geen stilzwijgende omzetting. Dezelfde daggrenzen en forcingwijzigingen gelden. Zie [regional-seasons.json](../examples/regional-seasons.json). De desktop-CLI schrijft bij regionale scenario’s ook `regions.csv`. CI vergelijkt zowel dagelijkse monsters als iedere eindcel tussen browser en desktop.
+
+Desktop C wisselt model en herstart de tijd; T kiest kaart/gewoon oppervlak; O/K wijzigen ashelling; H/J wijzigen D. Parameterwijzigingen bewaren huidige temperaturen. G zonder geladen scenario kiest 30 dagen regionaal of 365 dagen uniform. S bewaart scenario en laatste resultaten; L plus G herhaalt een geladen recept.

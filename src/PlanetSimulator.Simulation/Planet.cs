@@ -1,7 +1,7 @@
 ﻿namespace PlanetSimulator.Simulation;
 
 /// <summary>
-/// Describes a fictional terrestrial planet using SI units. No climate is modeled yet.
+/// Describes the radius, mass and prescribed rotation of a fictional terrestrial planet in SI units.
 /// </summary>
 public sealed class Planet
 {

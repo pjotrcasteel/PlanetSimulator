@@ -40,3 +40,42 @@ Geen atmosfeer, gaschemie, broeikaseffect, water, faseovergangen, ijs-albedo-fee
 - NASA, referentie-instraling 1361 W/m²: https://earth.gsfc.nasa.gov/climate/projects/solar-irradiance/science
 - NASA, effectieve stralingstemperatuur circa 255 K: https://sunclimate.gsfc.nasa.gov/science
 - NIST, CODATA 2022 Stefan–Boltzmann-constante: https://physics.nist.gov/cuu/pdf/wall_2022.pdf
+
+# Milestone 4: regionaal energiebalansmodel
+
+## Rooster en instraling
+
+12 breedterijen × 24 lengtecellen = 288 cellen. Grenzen liggen gelijkmatig in μ = sin(φ) en λ. Iedere cel heeft exact dezelfde analytische oppervlakte R² Δμ Δλ; alle cellen bedekken 4πR². De centrale breedte is asin(μ_midden). De celvorm wordt richting de pool smaller in lengte en groter in breedte. Dit is een grof klimatologisch rooster, geen terreinrooster.
+
+Cel-instraling: q_i = S (1−a) max(0, n_i · s), met normaal n_i en sterrichting s. De centrale puntwaarden worden per tijdstip met één factor genormaliseerd, zodat hun oppervlaktegemiddelde exact S(1−a)/4 is. Dit bewaart onderschepte energie maar is geen exacte integratie van iedere afzonderlijke cel, vooral bij dag/nachtgrenzen en poolkappen. De donkere celcentra blijven donker; de schemergrens kan door een cel lopen. Hogere ruimtelijke resolutie en betere celquadratuur blijven toekomstige verfijningen.
+
+Voorgeschreven zonnedeclinatie: δ = asin(sin(ε) sin(2πt/Y)), met ashelling ε en jaarlengte Y. Dag 0 is equinox; Y/4 noordelijk zomermaximum; 3Y/4 zuidelijk zomermaximum. Een voorgeschreven zonnedag duurt 86400 seconden. De renderer gebruikt dezelfde draaiing en declinatie voor de verlichtingsrichting. De rotatieas blijft visueel verticaal; veranderende sterdeclinatie is dezelfde relatieve hoek voor de instraling. Geen baanellips, precessie, Kepler-koppeling tussen jaarlengte en afstand of veranderende sterafstand gedurende de jaarcyclus. Afstand en jaarlengte zijn hier onafhankelijke experimentparameters.
+
+## Warmtetransport en integratie
+
+C dT_i/dt = q_i − σ T_i⁴ + transport_i.
+
+We benaderen de sferische angular diffusieoperator met eindige volumes:
+
+D [∂_μ((1−μ²)∂_μ T) + (1/(1−μ²)) ∂²_λ T].
+
+D heeft eenheid W/m²/K en vertegenwoordigt effectief horizontaal warmtetransport. Het is geen gemeten materiaalgeleiding en geen berekende atmosferische/oceanische stroming. De standaard D = 0.6 is een scenarioaanname, geen aardse kalibratie. Een gebruikelijke meridionale energiebalansbenadering gebruikt dezelfde sferische operator in de breedterichting; onze toepassing voegt de lengterichting toe.
+
+Per buurvlak wordt één flux berekend en met gelijke tegengestelde tekens geboekt. Lengterichting is periodiek; bij de polen is de meridionale grensflux nul. Noord/zuid-conductantie per cel is D(1−μ_grens²)/Δμ²; oost/west D/((1−μ_midden²)Δλ²). Intern transport maakt zo geen globale energie. De geometrische R²-factor valt uit de per-oppervlaktevergelijking weg; D is een effectieve angular klimaatcoëfficiënt.
+
+RK4 met stappen van 60 seconden; sterpositie wordt ook op de tussenstadia berekend. Geen temperatuurclamping of kunstmatig evenwichtsdoel. De energiebudgetten gebruiken dezelfde RK4-gewogen emissie als de temperatuurberekening, en gecompenseerde sommatie. Warmtevoorraadverandering per planeetoppervlakte is C(T_gemiddeld − T_begin). Het residu wordt getoond in J/m².
+
+Het globale gemiddelde wordt berekend over gelijke oppervlaktes. Uitstraling is het gemiddelde van σT_i⁴, niet σ maal het vierde vermogen van de gemiddelde temperatuur. De stralingsequivalente temperatuur (Q/σ)^(1/4) is daardoor geen algemeen evenwichtsdoel voor de gemiddelde celtemperatuur. Een regionale planeet kan in globale stralingsbalans zijn terwijl regio’s blijven reageren op dag/nacht en seizoenen.
+
+## Bereik en validatie
+
+Het klimaatbereik uit milestone 2 blijft gelden. D = 0–2 W/m²/K, ε = 0–90°, jaarlengte 30–1000 dagen. Het regionale model gebruikt bewust alleen dit 12×24-rooster; de vaste tijdstap en D-grens worden niet automatisch geldig bij een veel fijner rooster. Live hosts begrenzen regionale tijdsnelheid op één dag per seconde; scenario’s blijven vaste simulatietijdstappen gebruiken.
+
+Tests: roosteroppervlakten (relatieve tolerantie 1e-12), lengte-naad en poolindexen, exact totaal stervermogen, equinoxsymmetrie, dagrotatie, seizoens- en poolnachtgedrag bij 45° ashelling, behoud van transport, contrastafname, volledig energiebudget na wijzigingen, 60/30-secondenconvergentie bij de hoge-instraling/lage-C/hoog-D-grens, frame-onafhankelijkheid, reset en JSON/CSV-replay van iedere cel. De test gebruikt voor tijdstapvergelijking maximaal 0.02 K afwijking; dit is geen nauwkeurigheidsclaim voor echte klimaatgegevens. Spatial discretisatieconvergentie van de gekoppelde oplossing wordt nog niet geclaimd.
+
+Grof rooster, geen atmosfeer of broeikaseffect, wolken, land/oceanen, latente warmte, wind, water of biologische processen. Temperatuurkleuren zijn diagnostiek en geen terrein. Er is nog geen gevalideerde aardse klimaatvoorspelling of bewoonbaarheidsgrens.
+
+## Aanvullende primaire bronnen
+
+- NASA, ashelling en seizoenen: https://science.nasa.gov/earth/facts/
+- CLIMLAB documentatie, sferische meridionale diffusie, operator en D-eenheid: https://climlab.readthedocs.io/en/latest/api/climlab.dynamics.MeridionalHeatDiffusion.html

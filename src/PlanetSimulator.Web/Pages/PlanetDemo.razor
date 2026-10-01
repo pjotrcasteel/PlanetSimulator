@@ -5,12 +5,12 @@
 <div class="shell">
     <header>
         <a class="brand" href="./"><span class="brand-mark">◉</span> PlanetSimulator</a>
-        <span class="milestone">MILESTONE 3 <span>·</span> BROWSERDEMO</span>
+        <span class="milestone">MILESTONE 4 <span>·</span> BROWSERDEMO</span>
     </header>
     <main>
         <div class="world-column">
         <section class="viewer" aria-label="Interactieve planeet">
-            <div class="viewer-heading"><span class="eyebrow">EEN WERELD IN WORDING</span><h1>De eerste warmtebalans.</h1></div>
+            <div class="viewer-heading"><span class="eyebrow">EEN WERELD IN WORDING</span><h1>Een planeet met klimaatzones.</h1></div>
             <canvas id="planet-canvas" @ref="canvas" aria-label="3D-planeet: sleep om te draaien en scroll om te zoomen" tabindex="0"></canvas>
             <div class="viewer-bottom"><span class="status-dot"></span><span>@(session.Clock.IsPaused ? "Gepauzeerd" : "Simulatie actief")</span><span class="mouse-hint">Slepen om te draaien · scrollen om te zoomen</span></div>
             @if (error is not null)
@@ -20,22 +20,35 @@
         </section>
         <section class="energy-panel" aria-label="Energiebalans">
             <div class="energy-header"><span class="eyebrow">GEMIDDELD OVER DE HELE PLANEET</span><span id="thermal-trend" class="trend">@ThermalTrend</span></div>
-            <div class="energy-row"><span>Opgenomen zonlicht</span><strong id="absorbed-flux">@F(session.Climate.AbsorbedWattsPerSquareMeter, "F1") W/m²</strong></div>
-            <div class="energy-track"><div class="incoming" style="width:@FluxWidth(session.Climate.AbsorbedWattsPerSquareMeter)%"></div></div>
-            <div class="energy-row"><span>Uitgestraalde warmte</span><strong id="emitted-flux">@F(session.Climate.EmittedWattsPerSquareMeter, "F1") W/m²</strong></div>
-            <div class="energy-track"><div class="outgoing" style="width:@FluxWidth(session.Climate.EmittedWattsPerSquareMeter)%"></div></div>
-            <div class="energy-summary"><span>Netto energiestroom</span><strong id="net-flux">@F(session.Climate.NetWattsPerSquareMeter, "+0.0;-0.0;0.0") W/m²</strong></div>
+            <div class="energy-row"><span>Opgenomen zonlicht</span><strong id="absorbed-flux">@F(snapshot.AbsorbedWattsPerSquareMeter, "F1") W/m²</strong></div>
+            <div class="energy-track"><div class="incoming" style="width:@FluxWidth(snapshot.AbsorbedWattsPerSquareMeter)%"></div></div>
+            <div class="energy-row"><span>Uitgestraalde warmte</span><strong id="emitted-flux">@F(snapshot.EmittedWattsPerSquareMeter, "F1") W/m²</strong></div>
+            <div class="energy-track"><div class="outgoing" style="width:@FluxWidth(snapshot.EmittedWattsPerSquareMeter)%"></div></div>
+            <div class="energy-summary"><span>Netto energiestroom</span><strong id="net-flux">@F(snapshot.NetWattsPerSquareMeter, "+0.0;-0.0;0.0") W/m²</strong></div>
             <p>Een positieve energiestroom warmt op. Een negatieve energiestroom koelt af. De warmtecapaciteit bepaalt hoe snel dat gaat.</p>
         </section>
         </div>
         <aside>
             <span class="eyebrow">REFERENTIEPLANEET</span>
-            <h2>Van licht naar warmte.</h2>
+            <h2>Van evenaar tot pool.</h2>
             <p class="intro">Verander de afstand tot de ster of de reflectie en ontdek hoe de planeet naar een nieuw temperatuurevenwicht beweegt.</p>
-            <div class="temperature-card"><span>GLOBALE MODELTEMPERATUUR</span>
-                <strong id="temperature" data-kelvin="@F(session.Climate.TemperatureKelvin, "F6")">@F(session.Climate.TemperatureKelvin - 273.15) <small>°C</small></strong>
-                <div><span>@F(session.Climate.TemperatureKelvin) K</span><span>Evenwicht: <b id="equilibrium-temperature" data-kelvin="@F(session.Climate.EquilibriumTemperatureKelvin, "F6")">@F(session.Climate.EquilibriumTemperatureKelvin - 273.15) °C</b></span></div>
+            <label for="climate-model">Klimaatmodel (wisselen herstart de tijd)</label>
+            <select id="climate-model" value="@(session.Regional is null ? "global" : "regional")" @onchange="SelectModel" disabled="@(!ready)">
+                <option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
+            </select>
+            <div class="temperature-card"><span>GEMIDDELDE MODELTEMPERATUUR</span>
+                <strong id="temperature" data-kelvin="@F(snapshot.TemperatureKelvin, "F6")">@F(snapshot.TemperatureKelvin - 273.15) <small>°C</small></strong>
+                <div><span>@F(snapshot.TemperatureKelvin) K</span><span>Stralingseq.: <b id="equilibrium-temperature" data-kelvin="@F(snapshot.EquilibriumTemperatureKelvin, "F6")">@F(snapshot.EquilibriumTemperatureKelvin - 273.15) °C</b></span></div>
             </div>
+            @if (snapshot.Regional is { } regional)
+            {
+                <div class="regional-summary" id="regional-summary" data-cells="@regional.TemperaturesKelvin.Count">
+                    <div><span>Koudste / warmste cel</span><strong><b id="regional-min" data-kelvin="@F(regional.MinimumTemperatureKelvin, "F6")">@F(regional.MinimumTemperatureKelvin - 273.15)</b> / <b id="regional-max" data-kelvin="@F(regional.MaximumTemperatureKelvin, "F6")">@F(regional.MaximumTemperatureKelvin - 273.15)</b> °C</strong></div>
+                    <div><span>Noord / zuid gemiddeld</span><strong>@F(regional.NorthMeanTemperatureKelvin - 273.15) / @F(regional.SouthMeanTemperatureKelvin - 273.15) °C</strong></div>
+                    <div><span>Zonnedeclinatie</span><strong id="solar-declination">@F(regional.SolarDeclinationRadians * 180 / Math.PI)°</strong></div>
+                    <div><span>Energiebudgetafwijking</span><strong id="regional-budget">@F(regional.BudgetErrorJoulesPerSquareMeter, "G3") J/m²</strong></div>
+                </div>
+            }
             <div class="time-card"><span>VERSTREKEN SIMULATIETIJD</span><strong id="elapsed-days">@((session.Clock.ElapsedSeconds / 86400).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)) <small>dagen</small></strong></div>
             <div class="controls">
                 <button id="pause" @onclick="TogglePause" disabled="@(!ready)">@(session.Clock.IsPaused ? "▶ Hervatten" : "Ⅱ Pauzeren")</button>
@@ -46,9 +59,19 @@
                 <option value="1">Realtime · 1×</option>
                 <option value="3600">1 uur per seconde · 3.600×</option>
                 <option value="86400">1 dag per seconde · 86.400×</option>
-                <option value="604800">1 week per seconde · 604.800×</option>
+                <option value="604800" disabled="@(session.Regional is not null)">1 week per seconde · 604.800×</option>
             </select>
             <label class="checkbox"><input id="wireframe" type="checkbox" @bind="wireframe" @bind:after="ChangeWireframeAsync" disabled="@(!ready)" /> Toon het geometrische rooster</label>
+            @if (session.Regional is not null)
+            {
+                <label class="checkbox"><input id="temperature-map" type="checkbox" @bind="temperatureMap" @bind:after="ChangeTemperatureMapAsync" /> Temperatuurkaart op de planeet</label>
+                <div class="heat-legend"><div></div><span>170 K (−103 °C)</span><span>330 K (57 °C)</span></div>
+                <p class="field-hint">Vaste kleurschaal; waarden buiten dit bereik krijgen de eindkleur. Cellen hebben gelijke oppervlaktes. De kaart toont temperatuur, ook aan de nachtzijde.</p>
+                <label for="axial-tilt">Ashelling <strong>@F(session.Regional.Parameters.AxialTiltDegrees)°</strong></label>
+                <input id="axial-tilt" class="regional-range" type="range" min="0" max="90" step="1" value="@F(session.Regional.Parameters.AxialTiltDegrees)" @oninput="ChangeTilt" />
+                <label for="heat-diffusion">Warmtetransport <strong>@F(session.Regional.Parameters.HeatDiffusionWattsPerSquareMeterKelvin) W/m²/K</strong></label>
+                <input id="heat-diffusion" class="regional-range" type="range" min="0" max="2" step="0.1" value="@F(session.Regional.Parameters.HeatDiffusionWattsPerSquareMeterKelvin)" @oninput="ChangeDiffusion" />
+            }
             <div class="forcing-controls">
                 <label for="star-distance">Afstand tot de ster <strong>@F(session.Climate.Parameters.DistanceAstronomicalUnits) AU</strong></label>
                 <input id="star-distance" type="range" min="0.5" max="2" step="0.05" value="@F(session.Climate.Parameters.DistanceAstronomicalUnits)" @oninput="ChangeDistance" disabled="@(!ready)" />
@@ -57,20 +80,22 @@
                 <p>AU = afstand aarde–zon. Reset herstart op 230 K met je huidige instellingen.</p>
             </div>
             <dl><div><dt>Straal</dt><dd>6.371 km</dd></div><div><dt>Zwaartekracht</dt><dd>@session.Planet.SurfaceGravity.ToString("F2") m/s²</dd></div><div><dt>Rotatieperiode</dt><dd>24 uur</dd></div><div><dt>Warmtecapaciteit</dt><dd>10 MJ/m²/K</dd></div></dl>
-            <div class="note"><strong>Een bewust eenvoudig model</strong><p>Eén uniforme temperatuur, zonder atmosfeer of broeikaseffect. Dit is geen voorspelling van de huidige aarde. Oppervlaktekleuren blijven decoratief.</p></div>
+            <div class="note"><strong>Een bewust eenvoudig model</strong><p>Regionale stralingsbalans en benaderd warmtetransport, zonder atmosfeer of broeikaseffect. Geen aardse klimaatvoorspelling. De temperatuurkaart volgt modeldata; de gewone oppervlaktekleuren zijn decoratief.</p></div>
         </aside>
         <ExperimentPanel />
     </main>
-    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 3</span></footer>
+    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 4</span></footer>
 </div>
 
 @code {
-    private readonly SimulationSession session = new();
+    private readonly SimulationSession session = new(regional: new RegionalParameters());
+    private SimulationSnapshot snapshot = new(0, 0, 230, 254.578, 238.175, 158.7);
+    private bool temperatureMap = true;
     private static string F(double value, string format = "F2") => value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
-    private string ThermalTrend => Math.Abs(session.Climate.NetWattsPerSquareMeter) < 0.1 ? "Bijna in evenwicht"
-        : session.Climate.NetWattsPerSquareMeter > 0 ? "Warmt op" : "Koelt af";
+    private string ThermalTrend => Math.Abs(snapshot.NetWattsPerSquareMeter) < 0.1 ? "Bijna in evenwicht"
+        : snapshot.NetWattsPerSquareMeter > 0 ? "Warmt op" : "Koelt af";
 
-    private string FluxWidth(double flux) => F(100 * flux / Math.Max(1, Math.Max(session.Climate.AbsorbedWattsPerSquareMeter, session.Climate.EmittedWattsPerSquareMeter)));
+    private string FluxWidth(double flux) => F(100 * flux / Math.Max(1, Math.Max(snapshot.AbsorbedWattsPerSquareMeter, snapshot.EmittedWattsPerSquareMeter)));
     private readonly CancellationTokenSource lifetime = new();
     private ElementReference canvas;
     private IJSObjectReference? module;
@@ -83,6 +108,7 @@
     {
         if (!firstRender) return;
         session.Clock.Speed = 86400;
+        snapshot = session.Snapshot();
         try
         {
             module = await JS.InvokeAsync<IJSObjectReference>("import", lifetime.Token, "./js/planet.js");
@@ -103,7 +129,7 @@
     [JSInvokable]
     public SimulationSnapshot Advance(double realSeconds)
     {
-        var snapshot = session.Advance(realSeconds, lifetime.Token);
+        snapshot = session.Advance(realSeconds, lifetime.Token);
         StateHasChanged();
         return snapshot;
     }
@@ -118,6 +144,7 @@
     private async Task ResetAsync()
     {
         session.Reset(lifetime.Token);
+        snapshot = session.Snapshot();
         if (module is not null) await module.InvokeVoidAsync("resetCamera", lifetime.Token);
     }
 
@@ -125,7 +152,8 @@
     {
         if (double.TryParse(args.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var distance))
         {
-            session.Climate.SetForcing(distance, session.Climate.Parameters.BondAlbedo, lifetime.Token);
+            session.SetForcing(distance, session.Climate.Parameters.BondAlbedo, lifetime.Token);
+            snapshot = session.Snapshot();
         }
     }
 
@@ -133,10 +161,33 @@
     {
         if (double.TryParse(args.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var albedo))
         {
-            session.Climate.SetForcing(session.Climate.Parameters.DistanceAstronomicalUnits, albedo, lifetime.Token);
+            session.SetForcing(session.Climate.Parameters.DistanceAstronomicalUnits, albedo, lifetime.Token);
+            snapshot = session.Snapshot();
         }
     }
 
+    private void SelectModel(ChangeEventArgs args)
+    {
+        session.SelectModel(args.Value?.ToString() == "regional" ? new RegionalParameters() : null, lifetime.Token);
+        if (session.Regional is not null) session.Clock.Speed = Math.Min(session.Clock.Speed, 86400);
+        snapshot = session.Snapshot();
+    }
+    private void ChangeTilt(ChangeEventArgs args)
+    {
+        if (session.Regional is { } model && double.TryParse(args.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var value))
+            model.SetParameters(new RegionalParameters(value, model.Parameters.HeatDiffusionWattsPerSquareMeterKelvin, model.Parameters.YearDays), lifetime.Token);
+        snapshot = session.Snapshot();
+    }
+    private void ChangeDiffusion(ChangeEventArgs args)
+    {
+        if (session.Regional is { } model && double.TryParse(args.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var value))
+            model.SetParameters(new RegionalParameters(model.Parameters.AxialTiltDegrees, value, model.Parameters.YearDays), lifetime.Token);
+        snapshot = session.Snapshot();
+    }
+    private async Task ChangeTemperatureMapAsync()
+    {
+        if (module is not null) await module.InvokeVoidAsync("setTemperatureMap", lifetime.Token, temperatureMap);
+    }
     private async Task ChangeWireframeAsync()
     {
         if (module is not null) await module.InvokeVoidAsync("setWireframe", lifetime.Token, wireframe);

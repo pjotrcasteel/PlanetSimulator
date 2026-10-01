@@ -4,13 +4,15 @@ Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbo
 
 **Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
-## Milestone 3: reproduceerbare experimenten
+## Milestone 4: regionaal klimaat
+
+De planeet heeft nu 288 cellen met gelijke oppervlaktes, eigen temperaturen, dag/nacht, seizoenen door ashelling en conservatief warmtetransport. De temperatuurkaart volgt de berekende celwaarden op een vaste schaal van 170–330 K. De globale temperatuur en warmtestraling zijn oppervlaktegemiddelden. Kies het uniforme model om oudere experimenten te herhalen.
 
 Maak een scenario, voer een experiment uit en vergelijk de temperatuurcurve met de vorige run. Bewaar JSON-scenario’s en exporteer dagelijkse meetdata als CSV. Beginwaarden en geplande wijzigingen worden door dezelfde C#-kern in browser en desktop doorgerekend.
 
-Bekijk ook een eenvoudige belichte 3D-planeet en verander afstand tot de ster en reflectie. De gedeelde C#-kern berekent een uniforme temperatuur, warmtestraling en energiebalans. De werkelijke temperatuur verandert geleidelijk; de berekende evenwichtstemperatuur reageert direct op nieuwe instellingen.
+Bekijk ook een eenvoudige belichte 3D-planeet en verander afstand tot de ster en reflectie. De gedeelde C#-kern berekent temperatuur, warmtestraling en energiebalans voor het gekozen model. De werkelijke temperatuur verandert geleidelijk; de berekende evenwichtstemperatuur reageert direct op nieuwe instellingen.
 
-Dit is een model zonder atmosfeer of broeikaseffect. Kleuren en rooster zijn decoratief; er zijn nog geen continenten, oceanen, regionale temperaturen of ecosystemen. De referentieplaneet heeft aardachtige massa en straal, met 24 uur rotatietijd. De modeltemperatuur is geen voorspelling voor de huidige aarde.
+Dit is een model zonder atmosfeer of broeikaseffect. De gewone oppervlaktekleuren zijn decoratief; de temperatuurkaart bevat modeldata. Er zijn nog geen continenten, oceanen, wind of ecosystemen. De referentieplaneet heeft aardachtige massa en straal, met 24 uur rotatietijd. De modeltemperatuur is geen voorspelling voor de huidige aarde.
 
 ## Starten
 
@@ -42,10 +44,16 @@ Open http://localhost:5080. DesktopGL vereist een grafische desktop en werkende 
 | Afstand verhogen / verlagen | Page Up / Page Down |
 | Wireframe | W |
 | Temperatuur, tijd en camera resetten | R |
-| Experiment van 365 dagen starten / geladen scenario herhalen | G |
+| Regionaal/uniform model kiezen (herstart) | C |
+| Temperatuurkaart aan/uit | T |
+| Ashelling verhogen/verlagen | O / K |
+| Warmtetransport verhogen/verlagen | H / J |
+| Experiment starten / geladen scenario herhalen | G |
 | Scenario en laatste meetdata opslaan in experiments/ | S |
 | experiments/scenario.json laden (daarna G) | L |
 | Afsluiten | Escape |
+
+De desktop begint regionaal; G gebruikt dan standaard 30 dagen. Het uniforme model gebruikt 365 dagen. Regionale weergave begrenst tijdsnelheid tot één dag per seconde.
 
 De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset herstart de temperatuur op 230 K en behoudt je gekozen afstand, reflectie, pauzestatus en snelheid. Beide hosts starten met één simulatiedag per echte seconde. Een verborgen browsertabblad bouwt geen tijd op.
 
@@ -54,7 +62,7 @@ De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset hersta
 - Simulation: double-precisie, SI-eenheden, vaste stappen van 60 seconden, RK4 en energiebudgetten.
 - Desktop: MonoGame-presentatie, orbitcamera en ingebouwde bitmaptekst.
 - Web: Blazor WebAssembly met dezelfde C#-kern; WebGL 2 doet uitsluitend weergave en camerabediening.
-- Tests: 24 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
+- Tests: 35 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
 
 Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle gebruikt `npm ci`, `npx playwright install chromium` en `npm run test:smoke -- artifacts/web/wwwroot` op een gepubliceerd pakket met het /PlanetSimulator/-basepad.
 

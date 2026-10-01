@@ -36,11 +36,11 @@ Status: voltooid. 24 C#-tests, Windows-build, Chromium-scenarioacceptatie, JSON/
 
 ## 4. Regionaal klimaat
 
-Sferisch rooster, regionale instraling, ashelling en warmtetransport.
+Sferisch rooster van 12 × 24 gelijke-area-cellen, dag-/nachtinstraling, ashelling, een voorgeschreven seizoenscyclus en conservatieve diffusie tussen buurlocaties. Temperatuurkaart op de bol, lokale uitersten en hemisfeergemiddelden. Regionale scenario’s met eigen modelidentiteit en CSV-regiokaart.
 
-Acceptatie: Roosteroppervlakken tellen op tot 4πR²; energiebudget sluit.
+Acceptatie: roosteroppervlak is 4πR²; geïntegreerde zoninstraling klopt; intern transport behoudt warmte; energiebudget sluit; tijdstapconvergentie, JSON-replay en hostvergelijking worden getest.
 
-Status: Gepland.
+Status: geïmplementeerd; 35 lokale C#-tests en builds geslaagd. Browseracceptatie en publicatie volgen.
 
 ## 5. Land, water en ijs
 

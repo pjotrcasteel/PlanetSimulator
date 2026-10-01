@@ -24,7 +24,7 @@ internal sealed class ExperimentGraph : IDisposable
         var mint = new Color(139, 216, 191);
         var gold = new Color(217, 179, 119);
         var muted = new Color(146, 165, 183);
-        var legend = previous is null ? "TEMPERATURE C / EQUILIBRIUM" : "TEMPERATURE C / EQUILIBRIUM / PREVIOUS";
+        var legend = previous is null ? "TEMPERATURE C / RADIATIVE EQ" : "TEMPERATURE C / RADIATIVE EQ / PREVIOUS";
         text.Draw(batch, legend, new Vector2(area.X + 14, area.Y + 14), mint, 1);
         for (var tick = 0; tick < 5; tick++)
         {

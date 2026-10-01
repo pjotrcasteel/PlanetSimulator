@@ -47,3 +47,9 @@ Buildidentiteit staat onderaan de pagina. Geen service worker of offline-cache. 
 - Bewaar/laden in browser werkt ook na paginaherladen.
 - Onbekende modelversie geeft een fout zonder het huidige formulier te overschrijven.
 - Dezelfde browser-JSON wordt via de desktop-CLI herhaald; alle monsters moeten binnen gedocumenteerde toleranties overeenkomen.
+
+## Milestone 4 acceptatie
+
+De demo start regionaal. Uniform model blijft beschikbaar voor eerdere scenario’s. Modelwisselen herstart de tijd. Een dag per seconde is de bovengrens voor live regionale weergave. De temperatuurkaart toont celdata op de vaste schaal 170–330 K, ook aan de nachtzijde. Ashelling en warmtetransport zijn continu wijzigbaar zonder temperatuurreset.
+
+Controleer de 288 cellen, ontwikkelende temperatuurverschillen, sluitend energiebudget, behoud van parameters bij reset, kaart/gewoon oppervlak, mobiele layout, regionale scenario-import/export en vergelijking van iedere eindcel met de desktophost. Het experimentformulier kiest zijn eigen model, onafhankelijk van de live planeet.

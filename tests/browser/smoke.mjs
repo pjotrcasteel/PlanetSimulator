@@ -30,6 +30,7 @@ try {
     page.on('response', response => { if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`); });
     await page.goto(`http://127.0.0.1:${server.address().port}/PlanetSimulator/`);
     await page.waitForFunction(() => document.querySelector('#pause')?.disabled === false, null, { timeout: 60000 });
+    await page.selectOption('#climate-model', 'global');
     await page.locator('#pause').click();
     await page.waitForFunction(() => document.querySelector('#pause').textContent.includes('Hervatten'));
     // Allow the last in-flight bridge call to settle before comparing pause values.
@@ -123,6 +124,7 @@ try {
     // Browser storage survives a full page reload; no run is started by loading.
     await page.reload();
     await page.waitForFunction(() => document.querySelector('#pause')?.disabled === false, null, { timeout: 60000 });
+    await page.selectOption('#climate-model', 'global');
     await page.locator('#pause').click();
     await page.locator('#load-scenario').click();
     await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Browserreferentie');
@@ -135,6 +137,62 @@ try {
     await writeFile('artifacts/browser/replay-scenario.json', scenarioJson);
     await writeFile('artifacts/browser/replay-results.csv', baselineCsv);
 
+    // Spatial science and the temperature texture use the same model as regional replay.
+    await page.selectOption('#climate-model', 'regional');
+    await page.waitForFunction(() => document.querySelector('#regional-summary')?.dataset.cells === '288');
+    assert.equal(Number(await page.locator('#regional-min').getAttribute('data-kelvin')), 230);
+    assert.equal(Number(await page.locator('#regional-max').getAttribute('data-kelvin')), 230);
+    await setRange('#axial-tilt', '45');
+    await setRange('#heat-diffusion', '1.2');
+    assert.equal(Number(await page.locator('#temperature').getAttribute('data-kelvin')), 230);
+    assert.equal(await page.locator('#speed option[value="604800"]').isDisabled(), true);
+    await page.selectOption('#speed', '86400');
+    await page.locator('#pause').click();
+    await page.waitForFunction(() => parseFloat(document.querySelector('#elapsed-days').textContent) > 3, null, { timeout: 60000 });
+    await page.locator('#pause').click();
+    await page.waitForTimeout(250);
+    const minimum = Number(await page.locator('#regional-min').getAttribute('data-kelvin'));
+    const maximum = Number(await page.locator('#regional-max').getAttribute('data-kelvin'));
+    assert.ok(maximum - minimum > 1);
+    assert.ok(Math.abs(parseFloat(await page.locator('#regional-budget').innerText())) < 0.02);
+    const mapped = await page.locator('#planet-canvas').screenshot();
+    await page.locator('#temperature-map').uncheck();
+    await page.waitForTimeout(150);
+    const decorative = await page.locator('#planet-canvas').screenshot();
+    assert.notDeepEqual(mapped, decorative);
+    await page.locator('#temperature-map').check();
+    await page.locator('#reset').click();
+    assert.equal(Number(await page.locator('#regional-min').getAttribute('data-kelvin')), 230);
+    assert.equal(await page.locator('#axial-tilt').inputValue(), '45');
+    assert.equal(await page.locator('#heat-diffusion').inputValue(), '1.2');
+    await page.locator('#scenario-name').fill('Regionale referentie');
+    await page.locator('#experiment-days').fill('3');
+    await page.selectOption('#experiment-model', 'true');
+    await page.locator('#experiment-tilt').fill('45');
+    await page.locator('#experiment-diffusion').fill('1.2');
+    await page.locator('#run-experiment').click();
+    await page.waitForFunction(() => document.querySelector('#result-name')?.textContent === 'Regionale referentie', null, { timeout: 60000 });
+    assert.equal(await page.locator('#experiment-regional-range').getAttribute('data-cells'), '288');
+    const regionalJson = await downloadText('#export-run-scenario');
+    const regionalCsv = await downloadText('#export-csv');
+    const regionsCsv = await downloadText('#export-regions');
+    assert.equal(JSON.parse(regionalJson).modelVersion, 'regional-blackbody-rk4-60s-12x24-v1');
+    assert.equal(regionsCsv.trim().split('\n').length, 289);
+    assert.ok(regionalCsv.includes('north_mean_K'));
+    await page.locator('#import-scenario').setInputFiles({ name: 'regional.json', mimeType: 'application/json', buffer: Buffer.from(regionalJson) });
+    await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Regionale referentie');
+    await page.locator('#run-experiment').click();
+    await page.waitForFunction(() => document.querySelector('#run-experiment').disabled === false, null, { timeout: 60000 });
+    assert.equal(await downloadText('#export-csv'), regionalCsv);
+    assert.equal(await downloadText('#export-regions'), regionsCsv);
+    await writeFile('artifacts/browser/regional-scenario.json', regionalJson);
+    await writeFile('artifacts/browser/regional-results.csv', regionalCsv);
+    await writeFile('artifacts/browser/regional-regions.csv', regionsCsv);
+    // Keep a developed spatial field visible in the final desktop and mobile previews.
+    await page.locator('#pause').click();
+    await page.waitForFunction(() => parseFloat(document.querySelector('#elapsed-days').textContent) > 3, null, { timeout: 60000 });
+    await page.locator('#pause').click();
+    await page.waitForTimeout(250);
     await page.screenshot({ path: 'artifacts/browser/desktop.png', fullPage: true });
     await page.locator('#wireframe').check();
     await page.waitForTimeout(150);
@@ -153,7 +211,7 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
     assert.equal(await page.locator('.error').count(), 0);
     assert.deepEqual(errors, []);
-    console.log('Published Blazor app: climate, scenarios, scheduled changes, comparison, JSON/CSV replay, browser storage, WebGL and mobile layout passed.');
+    console.log('Published Blazor app: climate, scenarios, scheduled changes, comparison, spherical climate, tilt, conservative budgets, regional replay, JSON/CSV replay, browser storage, WebGL and mobile layout passed.');
 } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));

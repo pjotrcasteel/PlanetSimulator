@@ -55,3 +55,9 @@ De web-job herhaalt de browserexport via de desktop-CLI en vergelijkt elk monste
 Lokale SDK-cache-workaround blijft beperkt tot de controleomgeving. Definitieve standaardbuild, getrimde publish en browseracceptatie volgen in GitHub Actions. Handmatige native Windows-toetsenbordacceptatie blijft open.
 
 Bevestigde GitHub-validatie: https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36865991496. Windows-build, 24 tests, twee geometriechecks, standaard getrimde WASM-publish, Chromium-acceptatie, browser/desktop-replayvergelijking en Pages-publicatie geslaagd. Native en browserscreenshots visueel gecontroleerd. Live build.json bevestigde 051ce190d36eb2ac6df9f4d17190bd1909035946. Mobiele SVG-aslabels zijn daarna vergroot voor leesbaarheid.
+
+## Milestone 4
+
+35 lokale C#-tests, inclusief 11 regionale controles. Roosteroppervlak, globale instraling, interne warmtestromen, seizoenen, tijdstapverkleining, energiebudget, framepartities en iedere cel na JSON-replay zijn gecontroleerd. De absolute somfout op het boloppervlak is afronding bij circa 5.1×10^14 m²; daarom gebruikt de oppervlaktecontrole een relatieve tolerantie 1e-12.
+
+Browseracceptatie: modelkeuze, kaart aan/uit, celtemperatuurverschillen, ashelling/D zonder temperatuursprong, budget, reset, regionale JSON-replay, dagelijkse CSV en 288-cellenexport. CI herhaalt het regionale browserrecept in de desktophost en vergelijkt zowel dagelijks CSV als eindcellen. De SDK-cache-workaround blijft lokaal; standaard builds en getrimde publish worden in GitHub gecontroleerd. Handmatige interactieve native Windows-bediening blijft open.

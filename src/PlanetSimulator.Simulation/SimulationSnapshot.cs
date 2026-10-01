@@ -11,5 +11,6 @@ public sealed record SimulationSnapshot(
     double AbsorbedWattsPerSquareMeter,
     double EmittedWattsPerSquareMeter)
 {
+    public RegionalSnapshot? Regional { get; init; }
     public double NetWattsPerSquareMeter => AbsorbedWattsPerSquareMeter - EmittedWattsPerSquareMeter;
 }

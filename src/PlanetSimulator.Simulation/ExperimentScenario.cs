@@ -1,13 +1,17 @@
-﻿using System.Text.Json;
-using System.Text.Json.Serialization;
+﻿using System.Text.Json.Serialization;
 
 namespace PlanetSimulator.Simulation;
 
-/// <summary>Versioned initial conditions and forcing changes; elapsed time always starts at zero.</summary>
+/// <summary>
+/// Versioned initial conditions and forcing changes; elapsed time always starts at zero.
+/// </summary>
 public sealed record ExperimentScenario
 {
     public const int CurrentFormatVersion = 1;
     public const string CurrentModelVersion = "global-blackbody-rk4-60s-v1";
+    public const string RegionalModelVersion = "regional-blackbody-rk4-60s-12x24-v1";
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public RegionalParameters? Regional { get; init; }
     public required int FormatVersion { get; init; }
     public required string ModelVersion { get; init; }
     public required string Name { get; init; }
@@ -30,9 +34,17 @@ public sealed record ExperimentScenario
         return scenario;
     }
 
+    public static ExperimentScenario CreateRegional(string name, int durationDays, ClimateParameters climate, RegionalParameters regional, params ForcingChange[] changes)
+    {
+        ArgumentNullException.ThrowIfNull(regional);
+        var scenario = Create(name, durationDays, climate, changes) with { Regional = regional, ModelVersion = RegionalModelVersion };
+        scenario.Validate();
+        return scenario;
+    }
+
     public void Validate()
     {
-        if (FormatVersion != CurrentFormatVersion || ModelVersion != CurrentModelVersion)
+        if (FormatVersion != CurrentFormatVersion || ModelVersion != (Regional is null ? CurrentModelVersion : RegionalModelVersion))
             throw new ArgumentException("Onbekende scenario- of modelversie.");
         if (string.IsNullOrWhiteSpace(Name) || Name.Length > 80) throw new ArgumentException("Geef een naam van 1–80 tekens.");
         if (DurationDays is < 1 or > 730) throw new ArgumentException("De duur moet 1–730 dagen zijn.");
@@ -48,46 +60,3 @@ public sealed record ExperimentScenario
         }
     }
 }
-
-public sealed record ForcingChange
-{
-    public required int Day { get; init; }
-    public required double DistanceAstronomicalUnits { get; init; }
-    public required double BondAlbedo { get; init; }
-}
-
-/// <summary>Strict JSON with explicit model identity. Future versions require an intentional migration.</summary>
-public static class ScenarioJson
-{
-    public const int MaximumBytes = 65536;
-    private static readonly ScenarioJsonContext Context = new(new JsonSerializerOptions
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        WriteIndented = true,
-        UnmappedMemberHandling = JsonUnmappedMemberHandling.Disallow,
-    });
-
-    public static string Serialize(ExperimentScenario scenario)
-    {
-        scenario.Validate();
-        return JsonSerializer.Serialize(scenario, Context.ExperimentScenario);
-    }
-
-    public static ExperimentScenario Deserialize(string json)
-    {
-        if (System.Text.Encoding.UTF8.GetByteCount(json) > MaximumBytes) throw new ArgumentException("Scenariobestand is te groot (maximaal 64 KiB).");
-        using var document = JsonDocument.Parse(json);
-        if (document.RootElement.ValueKind != JsonValueKind.Object
-            || !document.RootElement.TryGetProperty("climate", out var climate) || climate.ValueKind != JsonValueKind.Object)
-            throw new ArgumentException("Beginwaarden ontbreken.");
-        foreach (var name in new[] { "distanceAstronomicalUnits", "bondAlbedo", "arealHeatCapacity", "initialTemperatureKelvin", "stellarLuminositySolarUnits" })
-            if (!climate.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
-                throw new ArgumentException($"Beginwaarde {name} ontbreekt of is geen getal.");
-        var scenario = JsonSerializer.Deserialize(json, Context.ExperimentScenario) ?? throw new ArgumentException("Scenario ontbreekt.");
-        scenario.Validate();
-        return scenario;
-    }
-}
-
-[JsonSerializable(typeof(ExperimentScenario))]
-internal partial class ScenarioJsonContext : JsonSerializerContext;

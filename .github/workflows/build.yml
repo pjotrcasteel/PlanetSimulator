@@ -61,6 +61,12 @@ jobs:
         run: dotnet run --project src/PlanetSimulator.Desktop -c Release -- --experiment artifacts/browser/replay-scenario.json --output artifacts/experiment
       - name: Compare browser and desktop experiment samples
         run: python scripts/compare-experiment.py artifacts/browser/replay-results.csv artifacts/experiment/results.csv
+      - name: Replay regional browser experiment with desktop host
+        run: dotnet run --project src/PlanetSimulator.Desktop -c Release -- --experiment artifacts/browser/regional-scenario.json --output artifacts/regional-experiment
+      - name: Compare regional daily samples and every final cell
+        run: |
+          python scripts/compare-experiment.py artifacts/browser/regional-results.csv artifacts/regional-experiment/results.csv
+          python scripts/compare-experiment.py artifacts/browser/regional-regions.csv artifacts/regional-experiment/regions.csv
       - uses: actions/upload-artifact@v4
         if: always()
         with:

@@ -11,7 +11,7 @@ namespace PlanetSimulator.Desktop;
 public sealed class PlanetGame : Game
 {
     private readonly GraphicsDeviceManager graphics;
-    private readonly SimulationSession session = new();
+    private readonly SimulationSession session = new(regional: new RegionalParameters());
     private readonly CancellationTokenSource lifetime = new();
     private SimulationClock Clock => session.Clock;
     private SpriteBatch spriteBatch = null!;
@@ -20,7 +20,7 @@ public sealed class PlanetGame : Game
     private ExperimentRunner? experiment;
     private ExperimentResult? result, previousResult;
     private ExperimentScenario? loadedScenario;
-    private string experimentStatus = "G: RUN 365 DAYS / S: SAVE / L: LOAD";
+    private string experimentStatus = "G: RUN EXPERIMENT / S: SAVE / L: LOAD";
     private readonly SphereMesh sphere = new();
     private BasicEffect effect = null!;
     private Texture2D surface = null!;
@@ -30,6 +30,12 @@ public sealed class PlanetGame : Game
     private float pitch = 0.25f;
     private float distance = 3.5f;
     private bool wireframe;
+    private bool temperatureMap = true;
+    private Color[] decorativePixels = [];
+    private Color[] mapPixels = [];
+    private int[] textureCells = [];
+    private bool[] textureBorders = [];
+    private long textureTick = -1;
     private readonly RasterizerState solid = new() { CullMode = CullMode.None };
     private readonly RasterizerState wire = new() { CullMode = CullMode.None, FillMode = FillMode.WireFrame };
 
@@ -60,16 +66,25 @@ public sealed class PlanetGame : Game
         effect.SpecularColor = Vector3.Zero;
         surface = new Texture2D(GraphicsDevice, 256, 128);
         var pixels = new Color[256 * 128];
+        mapPixels = new Color[pixels.Length];
+        textureCells = new int[pixels.Length];
+        textureBorders = new bool[pixels.Length];
+        var textureGrid = new SphericalGrid();
         for (var y = 0; y < 128; y++)
         {
             for (var x = 0; x < 256; x++)
             {
+                var textureIndex = y * 256 + x;
+                textureCells[textureIndex] = textureGrid.GetCellIndex(Math.PI / 2 - (y + 0.5) * Math.PI / 128, (x + 0.5) * Math.Tau / 256);
+                textureBorders[textureIndex] = x > 0 && textureCells[textureIndex] != textureCells[textureIndex - 1]
+                    || y > 0 && textureCells[textureIndex] != textureCells[textureIndex - 256];
                 var grid = x % 16 == 0 || y % 16 == 0;
                 var band = (float)(0.5 + 0.5 * Math.Sin(x * Math.Tau / 256 * 3 + y * 0.04));
                 pixels[y * 256 + x] = grid ? new Color(50, 76, 92) : Color.Lerp(new Color(95, 133, 153), new Color(166, 133, 96), band);
             }
         }
 
+        decorativePixels = pixels;
         surface.SetData(pixels);
         effect.Texture = surface;
         previousMouse = Mouse.GetState();
@@ -88,11 +103,22 @@ public sealed class PlanetGame : Game
         if (Pressed(keyboard, Keys.D1)) Clock.Speed = 1;
         if (Pressed(keyboard, Keys.D2)) Clock.Speed = 3600;
         if (Pressed(keyboard, Keys.D3)) Clock.Speed = 86400;
-        if (Pressed(keyboard, Keys.D4)) Clock.Speed = 604800;
+        if (Pressed(keyboard, Keys.D4)) Clock.Speed = session.Regional is null ? 604800 : 86400;
         if (Pressed(keyboard, Keys.A)) ChangeForcing(0, 0.05);
         if (Pressed(keyboard, Keys.Z)) ChangeForcing(0, -0.05);
         if (Pressed(keyboard, Keys.PageUp)) ChangeForcing(0.1, 0);
         if (Pressed(keyboard, Keys.PageDown)) ChangeForcing(-0.1, 0);
+        if (Pressed(keyboard, Keys.C))
+        {
+            session.SelectModel(session.Regional is null ? new RegionalParameters() : null, lifetime.Token);
+            if (session.Regional is not null) Clock.Speed = Math.Min(Clock.Speed, 86400);
+            loadedScenario = null; textureTick = -1;
+        }
+        if (Pressed(keyboard, Keys.T)) { temperatureMap = !temperatureMap; textureTick = -1; }
+        if (Pressed(keyboard, Keys.O)) ChangeRegional(5, 0);
+        if (Pressed(keyboard, Keys.K)) ChangeRegional(-5, 0);
+        if (Pressed(keyboard, Keys.H)) ChangeRegional(0, 0.1);
+        if (Pressed(keyboard, Keys.J)) ChangeRegional(0, -0.1);
         if (Pressed(keyboard, Keys.W)) wireframe = !wireframe;
         if (Pressed(keyboard, Keys.G) && experiment is null) experiment = new ExperimentRunner(loadedScenario ?? CurrentScenario());
         if (Pressed(keyboard, Keys.S)) SaveExperiment();
@@ -118,7 +144,7 @@ public sealed class PlanetGame : Game
 
         if (experiment is not null)
         {
-            for (var day = 0; day < 7 && !experiment.IsComplete; day++) experiment.AdvanceDay(lifetime.Token);
+            for (var day = 0; day < (experiment.Scenario.Regional is null ? 7 : 1) && !experiment.IsComplete; day++) experiment.AdvanceDay(lifetime.Token);
             experimentStatus = $"EXPERIMENT: {experiment.CompletedDays}/{experiment.Scenario.DurationDays} DAYS";
             if (experiment.IsComplete)
             {
@@ -129,8 +155,11 @@ public sealed class PlanetGame : Game
             }
         }
 
-        session.Advance(Math.Min(gameTime.ElapsedGameTime.TotalSeconds, 60), lifetime.Token);
-        Window.Title = $"PlanetSimulator | {session.Climate.TemperatureKelvin:F2} K | day {Clock.ElapsedSeconds / 86400:F2} | {Clock.Speed:G}x";
+        if (Environment.GetEnvironmentVariable("PLANET_SIMULATOR_REGIONAL_CAPTURE") == "1" && textureTick == -1)
+            for (var day = 0; day < 10; day++) session.AdvanceClock(1, lifetime.Token);
+        session.AdvanceClock(Math.Min(gameTime.ElapsedGameTime.TotalSeconds, 60), lifetime.Token);
+        UpdateTemperatureTexture();
+        Window.Title = $"PlanetSimulator | {session.Snapshot().TemperatureKelvin:F2} K | day {Clock.ElapsedSeconds / 86400:F2} | {Clock.Speed:G}x";
         previousKeyboard = keyboard;
         previousMouse = mouse;
         base.Update(gameTime);
@@ -147,8 +176,16 @@ public sealed class PlanetGame : Game
         GraphicsDevice.DepthStencilState = DepthStencilState.Default;
         GraphicsDevice.BlendState = BlendState.Opaque;
         GraphicsDevice.RasterizerState = wireframe ? wire : solid;
-        GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
+        GraphicsDevice.SamplerStates[0] = temperatureMap && session.Regional is not null ? SamplerState.PointClamp : SamplerState.LinearWrap;
         var camera = new Vector3(MathF.Cos(pitch) * MathF.Sin(yaw), MathF.Sin(pitch), MathF.Cos(pitch) * MathF.Cos(yaw)) * distance;
+        var regionalView = session.Regional is not null;
+        effect.LightingEnabled = !(regionalView && temperatureMap);
+        if (session.Regional is { } regional)
+        {
+            var declination = regional.SolarDeclinationRadians(Clock.ElapsedSeconds);
+            effect.DirectionalLight0.Direction = new Vector3(-(float)Math.Cos(declination), -(float)Math.Sin(declination), 0);
+        }
+        else effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -0.4f, -0.5f));
         effect.World = Matrix.CreateRotationY((float)session.Planet.GetRotationRadians(Clock.ElapsedSeconds));
         effect.View = Matrix.CreateLookAt(camera, Vector3.Zero, Vector3.Up);
         effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.PiOver4, GraphicsDevice.Viewport.AspectRatio, 0.01f, 100);
@@ -189,11 +226,34 @@ public sealed class PlanetGame : Game
         var parameters = session.Climate.Parameters;
         var starDistance = Math.Clamp(parameters.DistanceAstronomicalUnits + distanceChange, 0.5, 2);
         var albedo = Math.Clamp(parameters.BondAlbedo + albedoChange, 0, 0.8);
-        session.Climate.SetForcing(starDistance, albedo, lifetime.Token);
+        session.SetForcing(starDistance, albedo, lifetime.Token);
         loadedScenario = null;
     }
 
-    private ExperimentScenario CurrentScenario() => ExperimentScenario.Create("Desktop experiment", 365, session.Climate.Parameters);
+    private ExperimentScenario CurrentScenario() => session.Regional is { } regional
+        ? ExperimentScenario.CreateRegional("Desktop regional experiment", 30, session.Climate.Parameters, regional.Parameters)
+        : ExperimentScenario.Create("Desktop experiment", 365, session.Climate.Parameters);
+
+    private void ChangeRegional(double tiltChange, double diffusionChange)
+    {
+        if (session.Regional is not { } model) return;
+        model.SetParameters(new RegionalParameters(Math.Clamp(model.Parameters.AxialTiltDegrees + tiltChange, 0, 90),
+            Math.Clamp(model.Parameters.HeatDiffusionWattsPerSquareMeterKelvin + diffusionChange, 0, 2), model.Parameters.YearDays), lifetime.Token);
+        loadedScenario = null;
+    }
+
+    private void UpdateTemperatureTexture()
+    {
+        if (textureTick == Clock.TickCount) return;
+        textureTick = Clock.TickCount;
+        if (session.Regional is not { } regional || !temperatureMap) { surface.SetData(decorativePixels); return; }
+        for (var index = 0; index < mapPixels.Length; index++)
+        {
+            var colour = TemperaturePalette.ForKelvin(regional.TemperaturesKelvin[textureCells[index]]);
+            mapPixels[index] = textureBorders[index] ? new Color(colour.ToVector3() * 0.75f) : colour;
+        }
+        surface.SetData(mapPixels);
+    }
 
     private void SaveExperiment()
     {
@@ -202,6 +262,7 @@ public sealed class PlanetGame : Game
             Directory.CreateDirectory("experiments");
             File.WriteAllText("experiments/scenario.json", ScenarioJson.Serialize(result?.Scenario ?? loadedScenario ?? CurrentScenario()));
             if (result is not null) File.WriteAllText("experiments/results.csv", result.ToCsv());
+            if (result is { FinalRegions.Count: > 0 }) File.WriteAllText("experiments/regions.csv", result.ToRegionalCsv());
             experimentStatus = "SAVED: EXPERIMENTS/SCENARIO.JSON";
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
@@ -226,19 +287,19 @@ public sealed class PlanetGame : Game
 
     private void DrawReadouts()
     {
-        var climate = session.Climate;
+        var climate = session.Snapshot();
         var mint = new Color(139, 216, 191);
         var muted = new Color(159, 177, 193);
         spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 3", new Vector2(24, 24), mint);
+        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 4", new Vector2(24, 24), mint);
         var lines = new[]
         {
             $"TEMPERATURE: {F(climate.TemperatureKelvin)} K / {F(climate.TemperatureKelvin - 273.15)} C",
-            $"EQUILIBRIUM: {F(climate.EquilibriumTemperatureKelvin)} K",
+            $"RADIATIVE EQ: {F(climate.EquilibriumTemperatureKelvin)} K",
             $"ABSORBED: {F(climate.AbsorbedWattsPerSquareMeter)} W/M2",
             $"EMITTED: {F(climate.EmittedWattsPerSquareMeter)} W/M2",
             $"NET: {F(climate.NetWattsPerSquareMeter)} W/M2",
-            $"DISTANCE: {F(climate.Parameters.DistanceAstronomicalUnits)} AU / ALBEDO: {F(climate.Parameters.BondAlbedo * 100)}%",
+            $"DISTANCE: {F(session.Climate.Parameters.DistanceAstronomicalUnits)} AU / ALBEDO: {F(session.Climate.Parameters.BondAlbedo * 100)}%",
             $"DAY: {F(Clock.ElapsedSeconds / 86400)} / SPEED: {Clock.Speed:G}X",
             Clock.IsPaused ? "PAUSED" : "RUNNING",
         };
@@ -249,10 +310,18 @@ public sealed class PlanetGame : Game
             var width = Math.Min(470, GraphicsDevice.Viewport.Width / 2 - 40);
             graph.Draw(spriteBatch, text, new Rectangle(GraphicsDevice.Viewport.Width - width - 24, 54, width, 260), result, previousResult);
         }
-        var bottom = GraphicsDevice.Viewport.Height - 92;
+        if (climate.Regional is { } region)
+        {
+            text.Draw(spriteBatch, $"CELLS: 288 / MIN-MAX: {F(region.MinimumTemperatureKelvin)}-{F(region.MaximumTemperatureKelvin)} K", new Vector2(24, 275), mint, 1);
+            text.Draw(spriteBatch, $"TILT: {F(session.Regional!.Parameters.AxialTiltDegrees)} / D: {F(session.Regional.Parameters.HeatDiffusionWattsPerSquareMeterKelvin)}",
+                new Vector2(24, 292), mint, 1);
+            text.Draw(spriteBatch, $"BUDGET ERROR: {region.BudgetErrorJoulesPerSquareMeter:G3} J/M2", new Vector2(24, 309), muted, 1);
+        }
+        var bottom = GraphicsDevice.Viewport.Height - 113;
         text.Draw(spriteBatch, "DRAG: ORBIT / WHEEL: ZOOM / SPACE: PAUSE / R: RESET", new Vector2(24, bottom), muted);
         text.Draw(spriteBatch, "1-4: SPEED / A-Z: ALBEDO / PAGE UP-DOWN: DISTANCE / W: WIREFRAME", new Vector2(24, bottom + 23), muted);
-        text.Draw(spriteBatch, "UNIFORM BLACKBODY MODEL / NO ATMOSPHERE / DECORATIVE SURFACE", new Vector2(24, bottom + 46), mint);
+        text.Draw(spriteBatch, "C: MODEL / T: MAP / O-K: TILT / H-J: HEAT TRANSPORT", new Vector2(24, bottom + 46), muted);
+        text.Draw(spriteBatch, "THERMAL SCALE: 170-330 K / NO ATMOSPHERE OR OCEANS", new Vector2(24, bottom + 69), mint);
         spriteBatch.End();
     }
 

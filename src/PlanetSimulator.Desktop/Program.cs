@@ -13,6 +13,7 @@ if (args.Length == 4 && args[0] == "--experiment" && args[2] == "--output")
         Directory.CreateDirectory(args[3]);
         File.WriteAllText(Path.Combine(args[3], "scenario.json"), ScenarioJson.Serialize(result.Scenario));
         File.WriteAllText(Path.Combine(args[3], "results.csv"), result.ToCsv());
+        if (result.FinalRegions.Count > 0) File.WriteAllText(Path.Combine(args[3], "regions.csv"), result.ToRegionalCsv());
         Console.WriteLine($"Completed {scenario.DurationDays} days; {result.Samples.Count} samples. Model: {scenario.ModelVersion}");
     }
     catch (Exception exception) when (exception is ArgumentException or System.Text.Json.JsonException or IOException or UnauthorizedAccessException or OperationCanceledException)

@@ -1,29 +1,64 @@
 ﻿namespace PlanetSimulator.Simulation;
 
 /// <summary>
-/// Advances a shared clock, uniform energy balance and planetary rotation for every host.
+/// Advances one selected climate model and planetary rotation with a shared fixed-step clock.
+/// Switching model resets time and temperatures; forcing and regional parameter edits preserve stored energy.
 /// </summary>
 public sealed class SimulationSession
 {
     public SimulationClock Clock { get; } = new();
     public Planet Planet { get; } = new();
     public EnergyBalanceModel Climate { get; private set; }
+    public RegionalClimateModel? Regional { get; private set; }
+    public double CumulativeAbsorbedJoulesPerSquareMeter => Regional?.CumulativeAbsorbedJoulesPerSquareMeter ?? Climate.CumulativeAbsorbedJoulesPerSquareMeter;
+    public double CumulativeEmittedJoulesPerSquareMeter => Regional?.CumulativeEmittedJoulesPerSquareMeter ?? Climate.CumulativeEmittedJoulesPerSquareMeter;
+    public double EnergyBalanceErrorJoulesPerSquareMeter => Regional?.EnergyBalanceErrorJoulesPerSquareMeter ?? Climate.EnergyBalanceErrorJoulesPerSquareMeter;
 
-    public SimulationSession(ClimateParameters? parameters = null)
+    public SimulationSession(ClimateParameters? parameters = null, RegionalParameters? regional = null)
     {
         Climate = new EnergyBalanceModel(parameters);
+        if (regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, regional);
     }
 
     public SimulationSnapshot Advance(double realSeconds, CancellationToken cancellationToken)
     {
-        Clock.Advance(realSeconds, seconds => Climate.Advance(seconds, cancellationToken), cancellationToken);
-        return new SimulationSnapshot(
-            Clock.ElapsedSeconds,
-            Planet.GetRotationRadians(Clock.ElapsedSeconds),
-            Climate.TemperatureKelvin,
-            Climate.EquilibriumTemperatureKelvin,
-            Climate.AbsorbedWattsPerSquareMeter,
-            Climate.EmittedWattsPerSquareMeter);
+        AdvanceClock(realSeconds, cancellationToken);
+        return Snapshot();
+    }
+
+    public void AdvanceClock(double realSeconds, CancellationToken cancellationToken)
+    {
+        Clock.Advance(realSeconds, seconds =>
+        {
+            if (Regional is not null) Regional.Advance(seconds, cancellationToken);
+            else Climate.Advance(seconds, cancellationToken);
+        }, cancellationToken);
+    }
+
+    public SimulationSnapshot Snapshot() => new(Clock.ElapsedSeconds, Planet.GetRotationRadians(Clock.ElapsedSeconds),
+        Regional?.MeanTemperatureKelvin ?? Climate.TemperatureKelvin,
+        Regional?.EquilibriumTemperatureKelvin ?? Climate.EquilibriumTemperatureKelvin,
+        Regional?.AbsorbedWattsPerSquareMeter ?? Climate.AbsorbedWattsPerSquareMeter,
+        Regional?.EmittedWattsPerSquareMeter ?? Climate.EmittedWattsPerSquareMeter)
+    { Regional = Regional?.Snapshot() };
+
+    public void SetForcing(double distanceAstronomicalUnits, double bondAlbedo, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        // Validation happens before either model is changed.
+        _ = new ClimateParameters(distanceAstronomicalUnits, bondAlbedo);
+        Climate.SetForcing(distanceAstronomicalUnits, bondAlbedo, CancellationToken.None);
+        Regional?.SetForcing(distanceAstronomicalUnits, bondAlbedo, CancellationToken.None);
+    }
+
+    public void SelectModel(RegionalParameters? regional, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        var nextRegional = regional is null ? null : new RegionalClimateModel(Climate.Parameters, regional);
+        var nextGlobal = new EnergyBalanceModel(Climate.Parameters);
+        Regional = nextRegional;
+        Climate = nextGlobal;
+        Clock.Reset();
     }
 
     public void Reset(CancellationToken cancellationToken)
@@ -31,5 +66,6 @@ public sealed class SimulationSession
         cancellationToken.ThrowIfCancellationRequested();
         Clock.Reset();
         Climate = new EnergyBalanceModel(Climate.Parameters);
+        if (Regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters);
     }
 }

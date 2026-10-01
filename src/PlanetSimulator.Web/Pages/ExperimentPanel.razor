@@ -3,11 +3,22 @@
 @inject IJSRuntime JS
 
 <section class="experiment-panel" aria-label="Reproduceerbare experimenten">
-    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 3 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
+    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 4 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
         <p>Elke run begint opnieuw. Vergelijk temperatuurcurves en bewaar alle beginwaarden en geplande wijzigingen in een scenario.</p></div>
     <div class="experiment-layout">
         <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
             <fieldset disabled="@busy">
+                <label for="experiment-model">Model voor dit experiment</label>
+                <select id="experiment-model" @bind="regionalModel"><option value="false">Uniform · milestone 2</option><option value="true">Regionaal · 288 cellen</option></select>
+                @if (regionalModel)
+                {
+                    <div class="parameter-grid">
+                        <div><label for="experiment-tilt">Ashelling (°)</label><input id="experiment-tilt" type="number" min="0" max="90" step="any" required @bind="tilt" /></div>
+                        <div><label for="experiment-diffusion">Transport (W/m²/K)</label><input id="experiment-diffusion" type="number" min="0" max="2" step="any" required @bind="diffusion" /></div>
+                        <div><label for="experiment-year">Jaarlengte (dagen)</label><input id="experiment-year" type="number" min="30" max="1000" step="any" required @bind="yearDays" /></div>
+                    </div>
+                    <p class="field-hint">Regionale runs rekenen meer uit. Probeer eerst 10–30 dagen. De groene curve is het oppervlaktegemiddelde; stralingsevenwicht is geen doel voor de gemiddelde regionale temperatuur.</p>
+                }
                 <label for="scenario-name">Scenarionaam</label><input id="scenario-name" required maxlength="80" @bind="name" />
                 <div class="parameter-grid">
                     <div><label for="experiment-days">Duur (dagen)</label><input id="experiment-days" type="number" min="1" max="730" required @bind="days" /></div>
@@ -45,7 +56,7 @@
             else
             {
                 <div class="chart-heading"><h3 id="result-name">@result.Scenario.Name</h3><span id="sample-count">@result.Samples.Count meetpunten</span></div>
-                <div class="chart-legend"><span class="legend-current">Temperatuur</span><span class="legend-equilibrium">Evenwicht</span>@if (previous is not null) { <span class="legend-previous">Vorige: @previous.Scenario.Name</span> }</div>
+                <div class="chart-legend"><span class="legend-current">Gemiddelde temperatuur</span><span class="legend-equilibrium">Stralingsequivalent</span>@if (previous is not null) { <span class="legend-previous">Vorige: @previous.Scenario.Name</span> }</div>
                 <svg id="temperature-chart" class="temperature-chart" viewBox="0 0 700 310" role="img" aria-label="Temperatuur in graden Celsius tegen simulatiedagen">
                     <title>Temperatuurverloop van @result.Scenario.Name</title>
                     <text x="58" y="18" class="chart-label">Temperatuur (°C)</text>
@@ -67,6 +78,11 @@
                 <dl class="sample-readout"><div><dt>Temperatuur</dt><dd id="sample-temperature" data-kelvin="@F(Selected.TemperatureKelvin, "R")">@F(Selected.TemperatureKelvin - 273.15) °C</dd></div>
                     <div><dt>Netto vermogen</dt><dd>@F(Selected.AbsorbedWattsPerSquareMeter - Selected.EmittedWattsPerSquareMeter) W/m²</dd></div>
                     <div><dt>Budgetafwijking</dt><dd>@F(Selected.BudgetErrorJoulesPerSquareMeter, "G3") J/m²</dd></div></dl>
+                @if (Selected.Regional is { } region)
+                {
+                    <p class="field-hint" id="experiment-regional-range" data-cells="@region.TemperaturesKelvin.Count">Koudste/warmste: @F(region.MinimumTemperatureKelvin - 273.15) / @F(region.MaximumTemperatureKelvin - 273.15) °C. Noord/zuid: @F(region.NorthMeanTemperatureKelvin - 273.15) / @F(region.SouthMeanTemperatureKelvin - 273.15) °C.</p>
+                    <button id="export-regions" class="secondary" disabled="@busy" @onclick="ExportRegionsAsync">↓ Laatste regiokaart (CSV)</button>
+                }
                 <div class="result-actions"><button id="export-run-scenario" class="secondary" disabled="@busy" @onclick="ExportRunScenarioAsync">↓ Scenario van run</button><button id="export-csv" class="secondary" disabled="@busy" @onclick="ExportCsvAsync">↓ Meetdata (CSV)</button>
                     @if (previous is not null) { <button class="secondary" @onclick="() => previous = null">Vergelijking wissen</button> }</div>
                 <p class="field-hint">Dagelijkse monsters; intern stappen van 60 seconden. Een verticale evenwichtssprong verandert de temperatuur niet direct. CSV bevat alle monsters in SI-eenheden.</p>
@@ -84,6 +100,8 @@
 </section>
 
 @code {
+    private bool regionalModel;
+    private double tilt = 23.44, diffusion = 0.6, yearDays = 365.25;
     private string name = "Referentieplaneet";
     private int days = 365;
     private double initialTemperature = 230, distance = 1, albedo = 0.3, capacity = 10, luminosity = 1;
@@ -121,9 +139,13 @@
         return path.ToString();
     }
 
-    private ExperimentScenario Draft() => ExperimentScenario.Create(name, days,
-        new ClimateParameters(distance, albedo, capacity * 1e6, initialTemperature, luminosity),
-        changes.Select(c => new ForcingChange { Day = c.Day, DistanceAstronomicalUnits = c.Distance, BondAlbedo = c.Albedo }).ToArray());
+    private ExperimentScenario Draft()
+    {
+        var climate = new ClimateParameters(distance, albedo, capacity * 1e6, initialTemperature, luminosity);
+        var events = changes.Select(c => new ForcingChange { Day = c.Day, DistanceAstronomicalUnits = c.Distance, BondAlbedo = c.Albedo }).ToArray();
+        return regionalModel ? ExperimentScenario.CreateRegional(name, days, climate, new RegionalParameters(tilt, diffusion, yearDays), events)
+            : ExperimentScenario.Create(name, days, climate, events);
+    }
 
     private void AddChange() => changes.Add(new ChangeDraft { Day = changes.Count == 0 ? Math.Min(30, days - 1) : changes[^1].Day + 1, Distance = distance, Albedo = albedo });
 
@@ -140,7 +162,7 @@
             {
                 runner.AdvanceDay(runCancellation.Token);
                 progress = runner.CompletedDays;
-                if (progress % 7 == 0) { StateHasChanged(); await Task.Delay(1, runCancellation.Token); }
+                if (runner.Scenario.Regional is not null || progress % 7 == 0) { StateHasChanged(); await Task.Delay(1, runCancellation.Token); }
             }
             previous = result;
             result = runner.GetResult();
@@ -165,6 +187,12 @@
         if (result is null) return;
         await (await StorageAsync()).InvokeVoidAsync("download", lifetime.Token, "planet-run-scenario.json", "application/json", ScenarioJson.Serialize(result.Scenario));
         message = $"Scenario van {result.Scenario.Name} gedownload; dit hoort bij de meetdata van deze run.";
+    });
+    private async Task ExportRegionsAsync() => await WithMessageAsync(async () =>
+    {
+        if (result is null) return;
+        await (await StorageAsync()).InvokeVoidAsync("download", lifetime.Token, "planet-regions.csv", "text/csv", result.ToRegionalCsv());
+        message = "Laatste regiokaart gedownload: cel, breedte/lengte, oppervlakte en temperatuur.";
     });
     private async Task ExportCsvAsync() => await WithMessageAsync(async () =>
     {
@@ -193,6 +221,9 @@
     private void Apply(ExperimentScenario scenario)
     {
         name = scenario.Name; days = scenario.DurationDays;
+        regionalModel = scenario.Regional is not null;
+        if (scenario.Regional is { } regional)
+        { tilt = regional.AxialTiltDegrees; diffusion = regional.HeatDiffusionWattsPerSquareMeterKelvin; yearDays = regional.YearDays; }
         var climate = scenario.Climate;
         distance = climate.DistanceAstronomicalUnits; albedo = climate.BondAlbedo;
         initialTemperature = climate.InitialTemperatureKelvin; capacity = climate.ArealHeatCapacity / 1e6; luminosity = climate.StellarLuminositySolarUnits;
