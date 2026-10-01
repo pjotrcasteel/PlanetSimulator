@@ -40,7 +40,7 @@ Sferisch rooster van 12 × 24 gelijke-area-cellen, dag-/nachtinstraling, ashelli
 
 Acceptatie: roosteroppervlak is 4πR²; geïntegreerde zoninstraling klopt; intern transport behoudt warmte; energiebudget sluit; tijdstapconvergentie, JSON-replay en hostvergelijking worden getest.
 
-Status: geïmplementeerd; 35 lokale C#-tests en builds geslaagd. Browseracceptatie en publicatie volgen.
+Status: voltooid. Windows-build, 35 C#-tests, twee geometriechecks, getrimde Blazor-publish, Chromium-acceptatie, herhaling van dagelijkse regionale data en alle 288 eindcellen via desktop en Pages-publicatie geslaagd. Native, desktopbrowser- en mobiele screenshots visueel gecontroleerd.
 
 ## 5. Land, water en ijs
 
