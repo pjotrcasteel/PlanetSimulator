@@ -226,6 +226,8 @@ try {
     await page.waitForFunction(() => Number(document.querySelector('#temperature').dataset.kelvin) === 285);
     await page.waitForTimeout(300);
     const warm = await page.locator('#planet-canvas').screenshot();
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(150);
     await page.screenshot({ path: 'artifacts/browser/planet-warm.png', fullPage: true });
     await page.locator('#atmosphere').uncheck();
     await page.waitForTimeout(200);
@@ -246,6 +248,8 @@ try {
     await page.waitForTimeout(250);
     const cold = await page.locator('#planet-canvas').screenshot();
     assert.notDeepEqual(warm, cold);
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.waitForTimeout(150);
     await page.screenshot({ path: 'artifacts/browser/planet-cold.png', fullPage: true });
     await page.selectOption('#climate-model', 'regional');
     await page.locator('#temperature-map').check();

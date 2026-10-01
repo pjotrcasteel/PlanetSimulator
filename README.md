@@ -4,9 +4,11 @@ Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbo
 
 **Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
-## Milestone 4: regionaal klimaat
+## Milestone 6: een zichtbare planeet
 
-De planeet heeft nu 288 cellen met gelijke oppervlaktes, eigen temperaturen, dag/nacht, seizoenen door ashelling en conservatief warmtetransport. De temperatuurkaart volgt de berekende celwaarden op een vaste schaal van 170–330 K. De globale temperatuur en warmtestraling zijn oppervlaktegemiddelden. Kies het uniforme model om oudere experimenten te herhalen.
+Terrein, rotsachtig land, water, ijs en een optische atmosfeer vormen de nieuwe planeetweergave. Kies een koude of warme startwereld en bekijk hoe de berekende toestand verandert.
+
+De planeet heeft 288 cellen met gelijke oppervlaktes, eigen temperaturen, dag/nacht, seizoenen door ashelling en conservatief warmtetransport. De temperatuurkaart volgt de berekende celwaarden op een vaste schaal van 170–330 K. De globale temperatuur en warmtestraling zijn oppervlaktegemiddelden. Kies het uniforme model om oudere experimenten te herhalen.
 
 Maak een scenario, voer een experiment uit en vergelijk de temperatuurcurve met de vorige run. Bewaar JSON-scenario’s en exporteer dagelijkse meetdata als CSV. Beginwaarden en geplande wijzigingen worden door dezelfde C#-kern in browser en desktop doorgerekend.
 

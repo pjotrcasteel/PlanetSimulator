@@ -88,7 +88,8 @@ void main() {
     }
     float cosine = dot(direction,sunlight), phase = .75*(1.+cosine*cosine);
     vec3 scatter = (1.-exp(-depth*vec3(3.8,8.5,18.)))*(.38*phase);
-    color = vec4(scatter,1.);
+    // Preserve the transparent canvas outside the halo; opaque black would cover the page background.
+    color = vec4(scatter,max(scatter.r,max(scatter.g,scatter.b)));
 }`;
 
 function program(gl, vertexSource, fragmentSource) {
