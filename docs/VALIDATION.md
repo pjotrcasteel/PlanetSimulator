@@ -53,3 +53,5 @@ Bevestigd: https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36862871
 De web-job herhaalt de browserexport via de desktop-CLI en vergelijkt elk monster: relatieve tolerantie 1e-10, absolute tolerantie 1e-8 in de kolomeenheid; voor het kleine energiebudgetresidu 0.02 J/m². Exacte CSV-herhaling wordt binnen dezelfde runtime getest; bit-identieke resultaten tussen alle hardware/runtimes worden niet beloofd.
 
 Lokale SDK-cache-workaround blijft beperkt tot de controleomgeving. Definitieve standaardbuild, getrimde publish en browseracceptatie volgen in GitHub Actions. Handmatige native Windows-toetsenbordacceptatie blijft open.
+
+Bevestigde GitHub-validatie: https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36865991496. Windows-build, 24 tests, twee geometriechecks, standaard getrimde WASM-publish, Chromium-acceptatie, browser/desktop-replayvergelijking en Pages-publicatie geslaagd. Native en browserscreenshots visueel gecontroleerd. Live build.json bevestigde 051ce190d36eb2ac6df9f4d17190bd1909035946. Mobiele SVG-aslabels zijn daarna vergroot voor leesbaarheid.

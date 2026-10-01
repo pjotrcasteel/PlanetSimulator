@@ -32,7 +32,7 @@ Beginwaarden, geplande forcingwijzigingen, dagelijkse temperatuurgrafiek, vergel
 
 Acceptatie: opgeslagen en opnieuw geladen scenario’s leveren dezelfde volledige meetreeks. De browserexport wordt met de desktophost herhaald en numeriek vergeleken. Onbekende modelversies worden geweigerd.
 
-Status: geïmplementeerd; lokale validatie geslaagd. Browseracceptatie en publicatie worden gecontroleerd.
+Status: voltooid. 24 C#-tests, Windows-build, Chromium-scenarioacceptatie, JSON/CSV-replay, vergelijking van WASM- en desktopmonsters en Pages-deployment geslaagd. Native en browserscreenshots visueel gecontroleerd.
 
 ## 4. Regionaal klimaat
 
