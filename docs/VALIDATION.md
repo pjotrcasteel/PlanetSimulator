@@ -31,3 +31,11 @@ Geen wetenschappelijke klimaatsimulatie in deze milestone; uitsluitend tijd, rot
 - Pages-basepad /PlanetSimulator/ gecontroleerd in het gepubliceerde index.html.
 - Chromium-acceptatie en screenshots zijn onderdeel van de web-job. De lokale browserdownload was niet beschikbaar; de echte browsercontrole wordt op GitHub uitgevoerd.
 - Eenmalige Pages-activatie en live bereikbaarheid moeten worden bevestigd voordat de demo als gepubliceerd geldt.
+
+## Bevestigde GitHub-validatie milestone 1.5
+
+Workflow: https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36859077673
+
+Standaard Windows-build, zeven C#-tests, getrimde Blazor-publish op Ubuntu, twee Node-geometriechecks en Chromium-acceptatie zijn geslaagd. Desktop- en mobiele screenshots zijn visueel gecontroleerd. Pages-deployment is geslaagd; live build.json bevestigt commit 39106d74c98a60969e9a14b08e9229aeed58e66e op https://pjotrcasteel.github.io/PlanetSimulator/.
+
+De browserdemo is gepubliceerd. De handmatige acceptatie van de native Windows-app blijft open. Verborgen-tabbladgedrag is geïmplementeerd maar nog niet apart als browseracceptatietest uitgevoerd.

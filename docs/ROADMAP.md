@@ -16,7 +16,7 @@ Blazor WebAssembly met dezelfde C#-simulatiekern en een WebGL 2-renderer. Draaie
 
 Acceptatie: desktop- en browsersnapshots komen overeen; build en publish slagen; bediening en Pages-subpad werken. Iedere geslaagde wijziging op main publiceert de laatste demo. Buildidentiteit staat onderaan de pagina.
 
-Status: geïmplementeerd; build, browsercontrole en publicatie worden gecontroleerd.
+Status: voltooid. Windows-build, zeven C#-tests, twee geometriechecks, Chromium-acceptatie en getrimde publicatie geslaagd. Live: https://pjotrcasteel.github.io/PlanetSimulator/.
 
 ## 2. Licht en temperatuur
 

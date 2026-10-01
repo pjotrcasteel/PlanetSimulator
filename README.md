@@ -61,4 +61,4 @@ dotnet run --project src/PlanetSimulator.Web --urls http://localhost:5080
 
 Open http://localhost:5080. Een verborgen tabblad telt geen simulatietijd op. De minutenstappen zijn gelijk aan de desktopapp. Voor de dependency-free rendererchecks: `node --test tests/browser/geometry.test.mjs` (Node 22+).
 
-Verwachte demo-URL na Pages-activatie: https://pjotrcasteel.github.io/PlanetSimulator/. De workflow publiceert na een succesvolle Windows-build en tests. Zie [Pages-inrichting](docs/WEB-DEMO.md) voor de eenmalige instelling en beschikbaarheid bij een private repo.
+Live demo: https://pjotrcasteel.github.io/PlanetSimulator/. De workflow publiceert na een succesvolle Windows-build en tests. Zie [Pages-inrichting](docs/WEB-DEMO.md) voor de eenmalige instelling en beschikbaarheid bij een private repo.
