@@ -48,7 +48,7 @@ Hoogtekaart, waterreservoirs en faseovergangen.
 
 Acceptatie: Watermassa blijft behouden; latente warmte wordt meegenomen.
 
-Status: geïmplementeerd. Synthetische hoogtekaart, basin-vulling, enthalpie, fasefracties, desktop-/browserkaart en versieerbare waterexperimenten. Automatische controles worden bij deze commit uitgevoerd. Geen stroming, atmosfeer of ijsalbedo; zie SCIENCE.md.
+Status: voltooid. Synthetische hoogtekaart, basin-vulling, enthalpie, fasefracties, desktop-/browserkaart en versieerbare waterexperimenten. Windows-build, 42 C#-tests, twee geometriechecks, getrimde publicatie, Chromium-acceptatie, dagelijkse waterdiagnostiek en alle 288 eindreservoirs via WASM/desktop, en Pages-deployment geslaagd. Native en browserscreenshots gecontroleerd. Geen stroming, atmosfeer of ijsalbedo; zie SCIENCE.md.
 
 ## 6. Planeetlook
 

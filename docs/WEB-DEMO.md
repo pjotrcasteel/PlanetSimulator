@@ -53,3 +53,8 @@ Buildidentiteit staat onderaan de pagina. Geen service worker of offline-cache. 
 De demo start regionaal. Uniform model blijft beschikbaar voor eerdere scenario’s. Modelwisselen herstart de tijd. Een dag per seconde is de bovengrens voor live regionale weergave. De temperatuurkaart toont celdata op de vaste schaal 170–330 K, ook aan de nachtzijde. Ashelling en warmtetransport zijn continu wijzigbaar zonder temperatuurreset.
 
 Controleer de 288 cellen, ontwikkelende temperatuurverschillen, sluitend energiebudget, behoud van parameters bij reset, kaart/gewoon oppervlak, mobiele layout, regionale scenario-import/export en vergelijking van iedere eindcel met de desktophost. Het experimentformulier kiest zijn eigen model, onafhankelijk van de live planeet.
+
+
+## Milestone 5 acceptatie
+
+Kies **Land, water en ijs** in de live modelkeuze en zet **Temperatuurkaart op de planeet** uit. Land is groen, vloeibaar water blauw en ijs wit; mengen volgt de ijsmassafractie. De bol is nog glad. De experimentmodelkeuze heeft dezelfde wateroptie en instelbaar reliëf/waterinventaris. CSV-export bevat dagelijkse waterdiagnostiek en alle eindreservoirs. JSON-replay, browser-/desktopovereenkomst en Pages-publicatie zijn gecontroleerd in workflow 36887172223. De getoonde 10 MJ/m²/K is de substraatcapaciteit; water en ijs voegen warmtecapaciteit en latente energie toe.

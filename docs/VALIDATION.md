@@ -63,3 +63,16 @@ Bevestigde GitHub-validatie: https://github.com/pjotrcasteel/PlanetSimulator/act
 Browseracceptatie: modelkeuze, kaart aan/uit, celtemperatuurverschillen, ashelling/D zonder temperatuursprong, budget, reset, regionale JSON-replay, dagelijkse CSV en 288-cellenexport. CI herhaalt het regionale browserrecept in de desktophost en vergelijkt zowel dagelijks CSV als eindcellen. De SDK-cache-workaround blijft lokaal; standaard builds en getrimde publish worden in GitHub gecontroleerd. Handmatige interactieve native Windows-bediening blijft open.
 
 Bevestigd op GitHub: https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36871866976. Alle jobs geslaagd: Windows-build met 35 tests, standaard getrimde Blazor-publicatie, geometrie, Chromium, uniforme én regionale hostreplay en Pages. Alle 288 eindcellen en dagelijkse regionale kolommen vergeleken. De browsertest vond eerst een bool-selectbinding; die is vervangen door expliciete modelkeuze en daarna volledig opnieuw gecontroleerd. Native en browserscreenshots zijn visueel gecontroleerd. Live build.json bevestigde 80d440f6a3c704e363a06d772eaa7347c114c20b. Een lokaal regionaal CLI-experiment van 30 dagen kostte 0.91 seconde; dit is één meting in de werkruimte en geen browser- of hardwareonafhankelijke performancebelofte.
+
+
+## Milestone 5 — water en enthalpie
+
+Gecontroleerd op commit `ce155806954d9a0c98f30c38addfb60e60bfd6f7`, [workflow 36887172223](https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36887172223). Alle jobs inclusief Pages-deployment geslaagd.
+
+- 42 C#-tests: de bestaande 35 plus zeven tests voor enthalpie/latente warmte, basin-vulling, smelten en bevriezen, nul-waterlimiet, tijdstapgevoeligheid, scenario-replay en validatie/cancellation.
+- Directe faseproef: temperatuur blijft 273,15 K van nul tot volledige latente energie; daarna volgt voelbare warmte. Warmte- en massabalansen worden ook in de gekoppelde stralings-/diffusiestappen gecontroleerd.
+- 60 versus 30 s bij een faseovergang: ieder temperatuurverschil binnen 0,001 K en vloeibare massafractie binnen 0,0001 voor de testproef. Dit is geen algemene foutgrens voor alle scenario's.
+- Gekoppelde proef: energieafwijking <0,02 J/m²; relatieve watermassa-afwijking <1e-12, niet-negatieve fasemassa's.
+- Windows Release-build en self-contained desktoppublicatie; getrimde Blazor-publicatie; twee JS-geometriechecks; Chromium-bediening, JSON-replay en responsive layout.
+- Browserexport herhaald door dezelfde C#-kern via de desktophost: dagelijkse waterdiagnostiek én temperatuur/hoogte/water/liquid/ice van alle 288 eindcellen vergeleken met relatieve tolerantie 1e-10, absolute 1e-8 (energieresidu 0,02 J/m²).
+- Native oppervlaktescreenshot, browseroppervlakte en mobiele preview visueel gecontroleerd. Dit valideert implementatie en numerieke afspraken; wetenschappelijke validatie tegen echte oceanen of planetaire waarnemingen is nog niet uitgevoerd.
