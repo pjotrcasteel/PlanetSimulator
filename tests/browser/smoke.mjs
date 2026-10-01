@@ -69,7 +69,72 @@ try {
     await setRange('#albedo', '0.3');
     await page.waitForFunction(() => Number(document.querySelector('#equilibrium-temperature').dataset.kelvin) > 254);
     assert.equal(Number(await page.locator('#temperature').getAttribute('data-kelvin')), 230);
+    // Run, download, reload and replay a scenario through the actual trimmed WASM app.
+    await page.locator('#scenario-name').fill('Browserreferentie');
+    await page.locator('#experiment-days').fill('60');
+    await page.locator('#run-experiment').click();
+    await page.waitForFunction(() => document.querySelector('#sample-count')?.textContent.includes('61'), null, { timeout: 60000 });
+    assert.equal(await page.locator('#result-name').innerText(), 'Browserreferentie');
+    const baselineFinal = Number(await page.locator('#sample-temperature').getAttribute('data-kelvin'));
+    assert.ok(baselineFinal > 250 && baselineFinal < 255);
+    assert.equal(await page.locator('#temperature-curve').getAttribute('data-samples'), '61');
+    async function downloadText(selector) {
+        const pending = page.waitForEvent('download');
+        await page.locator(selector).click();
+        return await readFile(await (await pending).path(), 'utf8');
+    }
+    const scenarioJson = await downloadText('#export-scenario');
+    const baselineCsv = await downloadText('#export-csv');
+    const scenario = JSON.parse(scenarioJson);
+    assert.equal(scenario.formatVersion, 1);
+    assert.equal(scenario.modelVersion, 'global-blackbody-rk4-60s-v1');
+    assert.equal(scenario.climate.arealHeatCapacity, 1e7);
+    assert.equal(baselineCsv.trim().split('\n').length, 62);
+    await page.locator('#save-scenario').click();
+    await page.locator('#scenario-name').fill('Veranderd');
+    await page.locator('#load-scenario').click();
+    await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Browserreferentie');
+    await page.locator('#scenario-name').fill('Afkoeling op dag 30');
+    await page.locator('#add-change').click();
+    await page.locator('#change-day-0').fill('30');
+    await page.locator('#change-distance-0').fill('1.5');
+    await page.locator('#change-albedo-0').fill('0.6');
+    await page.locator('#run-experiment').click();
+    await page.waitForFunction(() => document.querySelector('#result-name')?.textContent === 'Afkoeling op dag 30', null, { timeout: 60000 });
+    assert.equal(await page.locator('#previous-curve').count(), 1);
+    assert.ok(Number(await page.locator('#sample-temperature').getAttribute('data-kelvin')) < baselineFinal - 20);
+    await setRange('#inspect-day', '30');
+    await page.waitForFunction(() => document.querySelector('#inspected-day').textContent === '30');
+    const changedCsv = await downloadText('#export-csv');
+    const changedRows = changedCsv.trim().split('\n');
+    const baselineRows = baselineCsv.trim().split('\n');
+    assert.equal(changedRows[31].split(',')[1], baselineRows[31].split(',')[1]);
+    assert.ok(Number(changedRows[31].split(',')[2]) < 200);
+    const incompatible = { ...scenario, modelVersion: 'future-model' };
+    await page.locator('#import-scenario').setInputFiles({ name: 'incompatible.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(incompatible)) });
+    await page.waitForFunction(() => document.querySelector('#experiment-message').textContent.includes('Onbekende'));
+    assert.equal(await page.locator('#scenario-name').inputValue(), 'Afkoeling op dag 30');
+    await page.locator('#import-scenario').setInputFiles({ name: 'scenario.json', mimeType: 'application/json', buffer: Buffer.from(scenarioJson) });
+    await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Browserreferentie');
+    assert.equal(await page.locator('.change-row').count(), 0);
+    await page.locator('#run-experiment').click();
+    await page.waitForFunction(() => document.querySelector('#result-name')?.textContent === 'Browserreferentie', null, { timeout: 60000 });
+    assert.equal(await downloadText('#export-csv'), baselineCsv);
+    // Browser storage survives a full page reload; no run is started by loading.
+    await page.reload();
+    await page.waitForFunction(() => document.querySelector('#pause')?.disabled === false, null, { timeout: 60000 });
+    await page.locator('#pause').click();
+    await page.locator('#load-scenario').click();
+    await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Browserreferentie');
+    assert.equal(await page.locator('#temperature-chart').count(), 0);
+    await page.locator('#run-experiment').click();
+    await page.waitForFunction(() => document.querySelector('#sample-count')?.textContent.includes('61'), null, { timeout: 60000 });
+    assert.equal(await downloadText('#export-csv'), baselineCsv);
     await mkdir('artifacts/browser', { recursive: true });
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile('artifacts/browser/replay-scenario.json', scenarioJson);
+    await writeFile('artifacts/browser/replay-results.csv', baselineCsv);
+
     await page.screenshot({ path: 'artifacts/browser/desktop.png', fullPage: true });
     await page.locator('#wireframe').check();
     await page.waitForTimeout(150);
@@ -88,7 +153,7 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
     assert.equal(await page.locator('.error').count(), 0);
     assert.deepEqual(errors, []);
-    console.log('Published Blazor app: temperature, equilibrium, forcing, cooling, reset, pause, WebGL and responsive layout passed.');
+    console.log('Published Blazor app: climate, scenarios, scheduled changes, comparison, JSON/CSV replay, browser storage, WebGL and mobile layout passed.');
 } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));

@@ -37,3 +37,13 @@ Buildidentiteit staat onderaan de pagina. Geen service worker of offline-cache. 
 - Wijzig afstand en albedo tijdens pauze: het doel en de flux veranderen, de temperatuur springt niet.
 - Kies een week per seconde en hervat: een koudere forcing laat de temperatuur dalen.
 - Reset zet temperatuur op 230 K en behoudt de huidige forcing.
+
+## Milestone 3 acceptatie
+
+- Start een run; grafiek en daginspectie tonen N+1 monsters.
+- Plan een verandering: nieuwe evenwichtstemperatuur op de geplande dag, zonder directe temperatuursprong.
+- Voer een tweede run uit en vergelijk beide curves.
+- Download JSON/CSV, laad JSON opnieuw en vergelijk de nieuwe CSV met de oorspronkelijke export.
+- Bewaar/laden in browser werkt ook na paginaherladen.
+- Onbekende modelversie geeft een fout zonder het huidige formulier te overschrijven.
+- Dezelfde browser-JSON wordt via de desktop-CLI herhaald; alle monsters moeten binnen gedocumenteerde toleranties overeenkomen.

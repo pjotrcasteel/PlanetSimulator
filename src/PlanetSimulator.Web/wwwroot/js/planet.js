@@ -156,7 +156,7 @@ export async function start(canvas, reference) {
         return response.json();
     }).then(build => {
         const label = document.getElementById('build-version');
-        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 2 · lokaal' : `Milestone 2 · ${build.commit.slice(0, 7)}`;
+        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 3 · lokaal' : `Milestone 3 · ${build.commit.slice(0, 7)}`;
     }).catch(() => {});
 }
 

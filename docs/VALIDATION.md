@@ -44,4 +44,12 @@ De browserdemo is gepubliceerd. De handmatige acceptatie van de native Windows-a
 
 Lokale C#-tests: 17 geslaagd. Release-build van alle projecten: geslaagd met nul waarschuwingen en fouten, met dezelfde tijdelijke SDK-cache-workaround als bij milestone 1.5. Desktop-render met bitmapreadouts: uitgevoerd en visueel gecontroleerd. De rekenmodellen hebben geen workaround nodig.
 
-De standaard build, getrimde Blazor-publish, uitgebreide Chromium-acceptatie en live Pages-versie worden opnieuw door GitHub Actions gecontroleerd voordat oplevering is bevestigd.
+Bevestigd: https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36862871565 — Windows-build, 17 C#-tests, twee geometriechecks, getrimde Blazor-publish, Chromium en Pages-deployment geslaagd. Native, desktopbrowser- en mobiele screenshots visueel gecontroleerd. Live build.json bevestigde c47a6a3275c0997ead83b5cee1bc26f7417a54db.
+
+## Milestone 3
+
+24 C#-tests controleren ook JSON-replay, alle dagelijkse monsters, CSV-reproduceerbaarheid, geplande wijzigingen zonder temperatuursprong, energiebudgetten, hosttijd-partities, scenario-isolatie, annuleren en versie-/invoervalidatie. Browseracceptatie controleert runnen, vergelijken, daginspectie, JSON-download/import, CSV-herhaling, afwijzing van onbekende modellen en browseropslag na herladen.
+
+De web-job herhaalt de browserexport via de desktop-CLI en vergelijkt elk monster: relatieve tolerantie 1e-10, absolute tolerantie 1e-8 in de kolomeenheid; voor het kleine energiebudgetresidu 0.02 J/m². Exacte CSV-herhaling wordt binnen dezelfde runtime getest; bit-identieke resultaten tussen alle hardware/runtimes worden niet beloofd.
+
+Lokale SDK-cache-workaround blijft beperkt tot de controleomgeving. Definitieve standaardbuild, getrimde publish en browseracceptatie volgen in GitHub Actions. Handmatige native Windows-toetsenbordacceptatie blijft open.

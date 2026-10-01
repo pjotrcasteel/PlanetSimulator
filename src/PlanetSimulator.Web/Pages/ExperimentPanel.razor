@@ -1,0 +1,219 @@
+@implements IAsyncDisposable
+@using Microsoft.AspNetCore.Components.Forms
+@inject IJSRuntime JS
+
+<section class="experiment-panel" aria-label="Reproduceerbare experimenten">
+    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 3 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
+        <p>Elke run begint opnieuw. Vergelijk temperatuurcurves en bewaar alle beginwaarden en geplande wijzigingen in een scenario.</p></div>
+    <div class="experiment-layout">
+        <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
+            <fieldset disabled="@busy">
+                <label for="scenario-name">Scenarionaam</label><input id="scenario-name" required maxlength="80" @bind="name" />
+                <div class="parameter-grid">
+                    <div><label for="experiment-days">Duur (dagen)</label><input id="experiment-days" type="number" min="1" max="730" required @bind="days" /></div>
+                    <div><label for="initial-temperature">Begintemperatuur (K)</label><input id="initial-temperature" type="number" min="1" max="1000" step="any" required @bind="initialTemperature" /></div>
+                    <div><label for="experiment-distance">Afstand (AU)</label><input id="experiment-distance" type="number" min="0.2" max="5" step="any" required @bind="distance" /></div>
+                    <div><label for="experiment-albedo">Bond-albedo (0–1)</label><input id="experiment-albedo" type="number" min="0" max="1" step="any" required @bind="albedo" /></div>
+                    <div><label for="heat-capacity">Warmtecapaciteit (MJ/m²/K)</label><input id="heat-capacity" type="number" min="0.1" max="10000" step="any" required @bind="capacity" /></div>
+                    <div><label for="stellar-luminosity">Sterhelderheid (zon = 1)</label><input id="stellar-luminosity" type="number" min="0" max="2" step="any" required @bind="luminosity" /></div>
+                </div>
+                <div class="schedule-heading"><strong>Geplande wijzigingen</strong><button id="add-change" type="button" class="secondary" @onclick="AddChange" disabled="@(changes.Count >= 32)">+ Toevoegen</button></div>
+                @if (changes.Count == 0) { <p class="field-hint">Optioneel: verander afstand en reflectie op een gekozen simulatiedag.</p> }
+                @for (var index = 0; index < changes.Count; index++)
+                {
+                    var row = changes[index];
+                    var key = index;
+                    <div class="change-row" @key="row">
+                        <div><label for="@($"change-day-{key}")">Dag</label><input id="@($"change-day-{key}")" type="number" min="1" max="@(days - 1)" required @bind="row.Day" /></div>
+                        <div><label for="@($"change-distance-{key}")">AU</label><input id="@($"change-distance-{key}")" type="number" min="0.2" max="5" step="any" required @bind="row.Distance" /></div>
+                        <div><label for="@($"change-albedo-{key}")">Albedo</label><input id="@($"change-albedo-{key}")" type="number" min="0" max="1" step="any" required @bind="row.Albedo" /></div>
+                        <button type="button" class="secondary remove-change" aria-label="Wijziging verwijderen" @onclick="() => changes.Remove(row)">×</button>
+                    </div>
+                }
+                <button id="run-experiment" class="run-button" type="submit">▶ Experiment uitvoeren</button>
+            </fieldset>
+        </form>
+        <div class="experiment-output">
+            @if (busy)
+            {
+                <div class="experiment-progress" role="status">Berekenen: @progress / @days dagen <button id="cancel-experiment" class="secondary" @onclick="Cancel">Annuleren</button></div>
+            }
+            @if (result is null)
+            {
+                <div class="chart-placeholder"><span>↗</span><h3>Een curve vertelt het verhaal.</h3><p>Start een experiment om opwarming, afkoeling en de reactie op een geplande wijziging te zien. De interactieve planeet hierboven blijft een apart experiment.</p></div>
+            }
+            else
+            {
+                <div class="chart-heading"><h3 id="result-name">@result.Scenario.Name</h3><span id="sample-count">@result.Samples.Count meetpunten</span></div>
+                <div class="chart-legend"><span class="legend-current">Temperatuur</span><span class="legend-equilibrium">Evenwicht</span>@if (previous is not null) { <span class="legend-previous">Vorige: @previous.Scenario.Name</span> }</div>
+                <svg id="temperature-chart" class="temperature-chart" viewBox="0 0 700 310" role="img" aria-label="Temperatuur in graden Celsius tegen simulatiedagen">
+                    <title>Temperatuurverloop van @result.Scenario.Name</title>
+                    <text x="58" y="18" class="chart-label">Temperatuur (°C)</text>
+                    @for (var tick = 0; tick < 5; tick++)
+                    {
+                        var y = 40 + tick * 55;
+                        <g><line x1="58" x2="676" y1="@y" y2="@y" class="chart-grid" /><text x="48" y="@(y + 4)" text-anchor="end" class="chart-label">@F(ChartMaximum - tick * (ChartMaximum - ChartMinimum) / 4, "F0")</text></g>
+                    }
+                    @if (previous is not null) { <path id="previous-curve" d="@Path(previous, false)" class="curve previous-curve" /> }
+                    <path id="equilibrium-curve" d="@Path(result, true)" class="curve equilibrium-curve" />
+                    <path id="temperature-curve" d="@Path(result, false)" class="curve current-curve" data-samples="@result.Samples.Count" />
+                    <line x1="@F(X(selectedDay))" x2="@F(X(selectedDay))" y1="40" y2="260" class="inspection-line" />
+                    <circle cx="@F(X(selectedDay))" cy="@F(Y(Selected.TemperatureKelvin))" r="4" class="inspection-dot" />
+                    <text x="58" y="282" class="chart-label">0</text><text x="367" y="282" text-anchor="middle" class="chart-label">@F(ChartDays / 2d, "0.#")</text>
+                    <text x="676" y="282" text-anchor="end" class="chart-label">@ChartDays</text><text x="367" y="305" text-anchor="middle" class="chart-label">Simulatiedagen</text>
+                </svg>
+                <label for="inspect-day">Inspecteer dag <strong id="inspected-day">@selectedDay</strong></label>
+                <input id="inspect-day" class="inspection-slider" type="range" min="0" max="@result.Scenario.DurationDays" @bind="selectedDay" @bind:event="oninput" />
+                <dl class="sample-readout"><div><dt>Temperatuur</dt><dd id="sample-temperature" data-kelvin="@F(Selected.TemperatureKelvin, "R")">@F(Selected.TemperatureKelvin - 273.15) °C</dd></div>
+                    <div><dt>Netto vermogen</dt><dd>@F(Selected.AbsorbedWattsPerSquareMeter - Selected.EmittedWattsPerSquareMeter) W/m²</dd></div>
+                    <div><dt>Budgetafwijking</dt><dd>@F(Selected.BudgetErrorJoulesPerSquareMeter, "G3") J/m²</dd></div></dl>
+                <div class="result-actions"><button id="export-run-scenario" class="secondary" disabled="@busy" @onclick="ExportRunScenarioAsync">↓ Scenario van run</button><button id="export-csv" class="secondary" disabled="@busy" @onclick="ExportCsvAsync">↓ Meetdata (CSV)</button>
+                    @if (previous is not null) { <button class="secondary" @onclick="() => previous = null">Vergelijking wissen</button> }</div>
+                <p class="field-hint">Dagelijkse monsters; intern stappen van 60 seconden. Een verticale evenwichtssprong verandert de temperatuur niet direct. CSV bevat alle monsters in SI-eenheden.</p>
+            }
+            <div class="scenario-storage">
+                <strong>Scenario bewaren en opnieuw gebruiken</strong>
+                <div class="storage-actions"><button id="export-scenario" class="secondary" disabled="@busy" @onclick="ExportScenarioAsync">↓ Scenario (JSON)</button>
+                    <label class="file-button" for="import-scenario">↑ JSON openen</label><InputFile id="import-scenario" accept=".json,application/json" disabled="@busy" OnChange="ImportAsync" /></div>
+                <div class="storage-actions"><button id="save-scenario" class="secondary" disabled="@busy" @onclick="SaveAsync">Bewaar in browser</button><button id="load-scenario" class="secondary" disabled="@busy" @onclick="LoadAsync">Laad uit browser</button></div>
+                <p class="field-hint">Eén scenario in deze browser. Download JSON om het duurzaam te bewaren of in de desktopapp te draaien. Laden start geen run.</p>
+            </div>
+            @if (message is not null) { <p id="experiment-message" class="experiment-message" role="status">@message</p> }
+        </div>
+    </div>
+</section>
+
+@code {
+    private string name = "Referentieplaneet";
+    private int days = 365;
+    private double initialTemperature = 230, distance = 1, albedo = 0.3, capacity = 10, luminosity = 1;
+    private readonly List<ChangeDraft> changes = [];
+    private ExperimentResult? result, previous;
+    private bool busy;
+    private int progress, selectedDay;
+    private string? message;
+    private CancellationTokenSource? runCancellation;
+    private readonly CancellationTokenSource lifetime = new();
+    private IJSObjectReference? storage;
+    private static string F(double value, string format = "F2") => value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+    private ExperimentSample Selected => result!.Samples[selectedDay];
+    private IEnumerable<ExperimentSample> ChartSamples => result!.Samples.Concat(previous?.Samples ?? []);
+    private double ChartMinimum => ChartSamples.Min(s => Math.Min(s.TemperatureKelvin, s.EquilibriumTemperatureKelvin)) - 273.15 - 3;
+    private double ChartMaximum => ChartSamples.Max(s => Math.Max(s.TemperatureKelvin, s.EquilibriumTemperatureKelvin)) - 273.15 + 3;
+    private int ChartDays => Math.Max(result!.Scenario.DurationDays, previous?.Scenario.DurationDays ?? 0);
+    private double X(int day) => 58 + 618d * day / ChartDays;
+    private double Y(double kelvin) => 260 - 220 * (kelvin - 273.15 - ChartMinimum) / (ChartMaximum - ChartMinimum);
+
+    private string Path(ExperimentResult run, bool equilibrium)
+    {
+        var path = new System.Text.StringBuilder();
+        var minimum = ChartMinimum;
+        var span = ChartMaximum - minimum;
+        double PlotY(double kelvin) => 260 - 220 * (kelvin - 273.15 - minimum) / span;
+        double? lastEquilibrium = null;
+        foreach (var sample in run.Samples)
+        {
+            if (equilibrium && lastEquilibrium is not null && lastEquilibrium != sample.EquilibriumTemperatureKelvin)
+                path.Append($" L{F(X(sample.Day))},{F(PlotY(lastEquilibrium.Value))}");
+            path.Append($"{(sample.Day == 0 ? "M" : " L")}{F(X(sample.Day))},{F(PlotY(equilibrium ? sample.EquilibriumTemperatureKelvin : sample.TemperatureKelvin))}");
+            lastEquilibrium = sample.EquilibriumTemperatureKelvin;
+        }
+        return path.ToString();
+    }
+
+    private ExperimentScenario Draft() => ExperimentScenario.Create(name, days,
+        new ClimateParameters(distance, albedo, capacity * 1e6, initialTemperature, luminosity),
+        changes.Select(c => new ForcingChange { Day = c.Day, DistanceAstronomicalUnits = c.Distance, BondAlbedo = c.Albedo }).ToArray());
+
+    private void AddChange() => changes.Add(new ChangeDraft { Day = changes.Count == 0 ? Math.Min(30, days - 1) : changes[^1].Day + 1, Distance = distance, Albedo = albedo });
+
+    private async Task RunAsync()
+    {
+        if (busy) return;
+        try
+        {
+            var runner = new ExperimentRunner(Draft());
+            runCancellation = CancellationTokenSource.CreateLinkedTokenSource(lifetime.Token);
+            busy = true; progress = 0; message = null;
+            await Task.Delay(1, runCancellation.Token);
+            while (!runner.IsComplete)
+            {
+                runner.AdvanceDay(runCancellation.Token);
+                progress = runner.CompletedDays;
+                if (progress % 7 == 0) { StateHasChanged(); await Task.Delay(1, runCancellation.Token); }
+            }
+            previous = result;
+            result = runner.GetResult();
+            selectedDay = result.Scenario.DurationDays;
+            message = $"Voltooid: {result.Scenario.DurationDays} dagen, {result.Samples.Count} meetpunten. Model {result.Scenario.ModelVersion}.";
+        }
+        catch (OperationCanceledException) { message = "Experiment geannuleerd. De vorige resultaten blijven beschikbaar."; }
+        catch (ArgumentException exception) { message = exception.Message; }
+        finally { busy = false; runCancellation?.Dispose(); runCancellation = null; }
+    }
+
+    private void Cancel() => runCancellation?.Cancel();
+    private async Task<IJSObjectReference> StorageAsync() => storage ??= await JS.InvokeAsync<IJSObjectReference>("import", lifetime.Token, "./js/experiments.js");
+    private async Task ExportScenarioAsync() => await WithMessageAsync(async () =>
+    {
+        var json = ScenarioJson.Serialize(Draft());
+        await (await StorageAsync()).InvokeVoidAsync("download", lifetime.Token, "planet-scenario.json", "application/json", json);
+        message = "Scenario gedownload; beginwaarden en geplande wijzigingen zijn opgeslagen.";
+    });
+    private async Task ExportRunScenarioAsync() => await WithMessageAsync(async () =>
+    {
+        if (result is null) return;
+        await (await StorageAsync()).InvokeVoidAsync("download", lifetime.Token, "planet-run-scenario.json", "application/json", ScenarioJson.Serialize(result.Scenario));
+        message = $"Scenario van {result.Scenario.Name} gedownload; dit hoort bij de meetdata van deze run.";
+    });
+    private async Task ExportCsvAsync() => await WithMessageAsync(async () =>
+    {
+        if (result is null) return;
+        await (await StorageAsync()).InvokeVoidAsync("download", lifetime.Token, "planet-results.csv", "text/csv", result.ToCsv());
+        message = $"CSV van {result.Scenario.Name} gedownload. Bewaar ook het bijbehorende scenario voor herhaling.";
+    });
+    private async Task SaveAsync() => await WithMessageAsync(async () =>
+    {
+        var json = ScenarioJson.Serialize(Draft());
+        await (await StorageAsync()).InvokeVoidAsync("save", lifetime.Token, json);
+        message = "Scenario bewaard in deze browser.";
+    });
+    private async Task LoadAsync() => await WithMessageAsync(async () =>
+    {
+        var json = await (await StorageAsync()).InvokeAsync<string?>("load", lifetime.Token);
+        if (json is null) { message = "Er is nog geen scenario bewaard in deze browser."; return; }
+        Apply(ScenarioJson.Deserialize(json));
+    });
+    private async Task ImportAsync(InputFileChangeEventArgs args) => await WithMessageAsync(async () =>
+    {
+        await using var stream = args.File.OpenReadStream(ScenarioJson.MaximumBytes, lifetime.Token);
+        using var reader = new StreamReader(stream);
+        Apply(ScenarioJson.Deserialize(await reader.ReadToEndAsync(lifetime.Token)));
+    });
+    private void Apply(ExperimentScenario scenario)
+    {
+        name = scenario.Name; days = scenario.DurationDays;
+        var climate = scenario.Climate;
+        distance = climate.DistanceAstronomicalUnits; albedo = climate.BondAlbedo;
+        initialTemperature = climate.InitialTemperatureKelvin; capacity = climate.ArealHeatCapacity / 1e6; luminosity = climate.StellarLuminositySolarUnits;
+        changes.Clear();
+        changes.AddRange(scenario.Changes.Select(c => new ChangeDraft { Day = c.Day, Distance = c.DistanceAstronomicalUnits, Albedo = c.BondAlbedo }));
+        message = $"Scenario ‘{name}’ geladen. Voer het experiment uit om de uitkomst te berekenen.";
+    }
+    private async Task WithMessageAsync(Func<Task> action)
+    {
+        try { await action(); }
+        catch (Exception exception) when (exception is ArgumentException or System.Text.Json.JsonException or IOException or JSException)
+        { message = $"Scenario niet verwerkt: {exception.Message}"; }
+    }
+    public async ValueTask DisposeAsync()
+    {
+        await lifetime.CancelAsync();
+        if (storage is not null)
+        {
+            try { await storage.DisposeAsync(); } catch (JSDisconnectedException) { }
+        }
+        lifetime.Dispose();
+    }
+    private sealed class ChangeDraft { public int Day { get; set; } public double Distance { get; set; } public double Albedo { get; set; } }
+}

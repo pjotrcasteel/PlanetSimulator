@@ -16,6 +16,11 @@ public sealed class PlanetGame : Game
     private SimulationClock Clock => session.Clock;
     private SpriteBatch spriteBatch = null!;
     private PixelTextRenderer text = null!;
+    private ExperimentGraph graph = null!;
+    private ExperimentRunner? experiment;
+    private ExperimentResult? result, previousResult;
+    private ExperimentScenario? loadedScenario;
+    private string experimentStatus = "G: RUN 365 DAYS / S: SAVE / L: LOAD";
     private readonly SphereMesh sphere = new();
     private BasicEffect effect = null!;
     private Texture2D surface = null!;
@@ -45,6 +50,9 @@ public sealed class PlanetGame : Game
     {
         spriteBatch = new SpriteBatch(GraphicsDevice);
         text = new PixelTextRenderer(GraphicsDevice);
+        graph = new ExperimentGraph(GraphicsDevice);
+        if (Environment.GetEnvironmentVariable("PLANET_SIMULATOR_EXPERIMENT_CAPTURE") == "1")
+            result = new ExperimentRunner(CurrentScenario()).Finish(lifetime.Token);
         effect = new BasicEffect(GraphicsDevice) { TextureEnabled = true, LightingEnabled = true, AmbientLightColor = new Vector3(0.06f) };
         effect.DirectionalLight0.Enabled = true;
         effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -0.4f, -0.5f));
@@ -86,6 +94,9 @@ public sealed class PlanetGame : Game
         if (Pressed(keyboard, Keys.PageUp)) ChangeForcing(0.1, 0);
         if (Pressed(keyboard, Keys.PageDown)) ChangeForcing(-0.1, 0);
         if (Pressed(keyboard, Keys.W)) wireframe = !wireframe;
+        if (Pressed(keyboard, Keys.G) && experiment is null) experiment = new ExperimentRunner(loadedScenario ?? CurrentScenario());
+        if (Pressed(keyboard, Keys.S)) SaveExperiment();
+        if (Pressed(keyboard, Keys.L) && experiment is null) LoadExperiment();
         if (Pressed(keyboard, Keys.R))
         {
             session.Reset(lifetime.Token);
@@ -103,6 +114,19 @@ public sealed class PlanetGame : Game
             }
 
             distance = MathHelper.Clamp(distance - (mouse.ScrollWheelValue - previousMouse.ScrollWheelValue) * 0.002f, 1.4f, 12);
+        }
+
+        if (experiment is not null)
+        {
+            for (var day = 0; day < 7 && !experiment.IsComplete; day++) experiment.AdvanceDay(lifetime.Token);
+            experimentStatus = $"EXPERIMENT: {experiment.CompletedDays}/{experiment.Scenario.DurationDays} DAYS";
+            if (experiment.IsComplete)
+            {
+                previousResult = result;
+                result = experiment.GetResult();
+                experiment = null;
+                experimentStatus = "COMPLETE / G: RERUN / S: SAVE / L: LOAD";
+            }
         }
 
         session.Advance(Math.Min(gameTime.ElapsedGameTime.TotalSeconds, 60), lifetime.Token);
@@ -152,6 +176,7 @@ public sealed class PlanetGame : Game
         lifetime.Dispose();
         spriteBatch.Dispose();
         text.Dispose();
+        graph.Dispose();
         effect.Dispose();
         surface.Dispose();
         solid.Dispose();
@@ -165,6 +190,38 @@ public sealed class PlanetGame : Game
         var starDistance = Math.Clamp(parameters.DistanceAstronomicalUnits + distanceChange, 0.5, 2);
         var albedo = Math.Clamp(parameters.BondAlbedo + albedoChange, 0, 0.8);
         session.Climate.SetForcing(starDistance, albedo, lifetime.Token);
+        loadedScenario = null;
+    }
+
+    private ExperimentScenario CurrentScenario() => ExperimentScenario.Create("Desktop experiment", 365, session.Climate.Parameters);
+
+    private void SaveExperiment()
+    {
+        try
+        {
+            Directory.CreateDirectory("experiments");
+            File.WriteAllText("experiments/scenario.json", ScenarioJson.Serialize(result?.Scenario ?? loadedScenario ?? CurrentScenario()));
+            if (result is not null) File.WriteAllText("experiments/results.csv", result.ToCsv());
+            experimentStatus = "SAVED: EXPERIMENTS/SCENARIO.JSON";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            experimentStatus = "SAVE FAILED / CHECK DIRECTORY PERMISSIONS";
+        }
+    }
+
+    private void LoadExperiment()
+    {
+        try
+        {
+            if (new FileInfo("experiments/scenario.json").Length > ScenarioJson.MaximumBytes) throw new ArgumentException("Scenario too large.");
+            loadedScenario = ScenarioJson.Deserialize(File.ReadAllText("experiments/scenario.json"));
+            experimentStatus = "SCENARIO LOADED / G: RUN";
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or ArgumentException or System.Text.Json.JsonException)
+        {
+            experimentStatus = "LOAD FAILED / CHECK SCENARIO.JSON";
+        }
     }
 
     private void DrawReadouts()
@@ -173,7 +230,7 @@ public sealed class PlanetGame : Game
         var mint = new Color(139, 216, 191);
         var muted = new Color(159, 177, 193);
         spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 2", new Vector2(24, 24), mint);
+        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 3", new Vector2(24, 24), mint);
         var lines = new[]
         {
             $"TEMPERATURE: {F(climate.TemperatureKelvin)} K / {F(climate.TemperatureKelvin - 273.15)} C",
@@ -186,6 +243,12 @@ public sealed class PlanetGame : Game
             Clock.IsPaused ? "PAUSED" : "RUNNING",
         };
         for (var index = 0; index < lines.Length; index++) text.Draw(spriteBatch, lines[index], new Vector2(24, 54 + index * 23), muted);
+        text.Draw(spriteBatch, experimentStatus, new Vector2(24, 254), mint, 1);
+        if (result is not null && GraphicsDevice.Viewport.Width >= 900)
+        {
+            var width = Math.Min(470, GraphicsDevice.Viewport.Width / 2 - 40);
+            graph.Draw(spriteBatch, text, new Rectangle(GraphicsDevice.Viewport.Width - width - 24, 54, width, 260), result, previousResult);
+        }
         var bottom = GraphicsDevice.Viewport.Height - 92;
         text.Draw(spriteBatch, "DRAG: ORBIT / WHEEL: ZOOM / SPACE: PAUSE / R: RESET", new Vector2(24, bottom), muted);
         text.Draw(spriteBatch, "1-4: SPEED / A-Z: ALBEDO / PAGE UP-DOWN: DISTANCE / W: WIREFRAME", new Vector2(24, bottom + 23), muted);

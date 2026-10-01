@@ -24,15 +24,15 @@ Globale stralingsbalans met inverse kwadratenwet, Bond-albedo, warmtecapaciteit 
 
 Acceptatie: analytisch referentie-evenwicht, energiebudget, stapgevoeligheid, warming/cooling en overeenkomst tussen hosts worden getest. Zie SCIENCE.md voor aannames en beperkingen.
 
-Status: geïmplementeerd; 17 lokale C#-tests en desktop-render geslaagd. Browseracceptatie en live publicatie worden gecontroleerd.
+Status: voltooid. Windows-build, 17 C#-tests, twee geometriechecks, getrimde Blazor-publish, Chromium en Pages-publicatie geslaagd.
 
 ## 3. Experimenten
 
-Parameters, grafieken en versieerbare scenario-opslag.
+Beginwaarden, geplande forcingwijzigingen, dagelijkse temperatuurgrafiek, vergelijking met de vorige run, inspectie en versieerbare JSON-scenario’s. CSV bevat meetdata en energiebudgetten. Browseropslag en dezelfde experimentrunner in de desktopapp.
 
-Acceptatie: Identieke scenario’s leveren reproduceerbare uitkomsten.
+Acceptatie: opgeslagen en opnieuw geladen scenario’s leveren dezelfde volledige meetreeks. De browserexport wordt met de desktophost herhaald en numeriek vergeleken. Onbekende modelversies worden geweigerd.
 
-Status: Gepland.
+Status: geïmplementeerd; lokale validatie geslaagd. Browseracceptatie en publicatie worden gecontroleerd.
 
 ## 4. Regionaal klimaat
 

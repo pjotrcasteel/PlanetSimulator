@@ -7,7 +7,12 @@ public sealed class SimulationSession
 {
     public SimulationClock Clock { get; } = new();
     public Planet Planet { get; } = new();
-    public EnergyBalanceModel Climate { get; private set; } = new();
+    public EnergyBalanceModel Climate { get; private set; }
+
+    public SimulationSession(ClimateParameters? parameters = null)
+    {
+        Climate = new EnergyBalanceModel(parameters);
+    }
 
     public SimulationSnapshot Advance(double realSeconds, CancellationToken cancellationToken)
     {
