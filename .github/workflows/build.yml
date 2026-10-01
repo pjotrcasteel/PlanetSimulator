@@ -53,8 +53,15 @@ jobs:
         run: python scripts/prepare-pages.py artifacts/web/wwwroot
       - name: Install browser checks
         run: npm ci
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
+      - name: Select test browser
+        timeout-minutes: 5
+        run: |
+          if command -v google-chrome >/dev/null 2>&1; then
+            echo "PLANET_CHROMIUM_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+            google-chrome --version
+          else
+            npx playwright install --with-deps chromium
+          fi
       - name: Check published demo in Chromium
         run: npm run test:smoke -- artifacts/web/wwwroot
       - name: Replay browser experiment with desktop host
