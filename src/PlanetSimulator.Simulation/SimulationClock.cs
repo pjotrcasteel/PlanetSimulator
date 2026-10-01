@@ -2,10 +2,12 @@
 
 /// <summary>
 /// Advances simulation time in fixed one-minute steps, independently of rendering.
+/// Each completed model step advances the clock once; cancellation preserves their alignment.
 /// </summary>
 public sealed class SimulationClock
 {
     public const double StepSeconds = 60;
+    public const double MaximumSpeed = 604800;
     private double remainderSeconds;
     private double speed = 3600;
 
@@ -17,7 +19,7 @@ public sealed class SimulationClock
         get => speed;
         set
         {
-            if (!double.IsFinite(value) || value < 0 || value > 86400)
+            if (!double.IsFinite(value) || value < 0 || value > MaximumSpeed)
             {
                 throw new ArgumentOutOfRangeException(nameof(value));
             }
@@ -26,7 +28,9 @@ public sealed class SimulationClock
         }
     }
 
-    public void Advance(double realSeconds, CancellationToken cancellationToken)
+    public void Advance(double realSeconds, CancellationToken cancellationToken) => Advance(realSeconds, null, cancellationToken);
+
+    public void Advance(double realSeconds, Action<double>? advanceStep, CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (!double.IsFinite(realSeconds) || realSeconds < 0 || realSeconds > 60)
@@ -40,9 +44,13 @@ public sealed class SimulationClock
         }
 
         remainderSeconds += realSeconds * Speed;
-        var steps = (long)Math.Floor((remainderSeconds + 1e-8) / StepSeconds);
-        TickCount += steps;
-        remainderSeconds = Math.Max(0, remainderSeconds - steps * StepSeconds);
+        while (remainderSeconds + 1e-8 >= StepSeconds)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            advanceStep?.Invoke(StepSeconds);
+            TickCount++;
+            remainderSeconds = Math.Max(0, remainderSeconds - StepSeconds);
+        }
     }
 
     public void Reset()

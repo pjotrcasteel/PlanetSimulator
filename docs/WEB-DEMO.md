@@ -19,7 +19,7 @@ De Windows-job bouwt alle projecten en test de C#-kern. Daarna test de web-job d
 
 De demo is een browserpresentatie van de gedeelde C#-kern, geen MonoGame-build. JS berekent geen simulatietijd of planetaire rotatie. JS doet alleen WebGL-rendering, camerabewegingen en doorgeven van echte verstreken tijd. Bij een verborgen tabblad stopt tijdopbouw; terugkeren veroorzaakt geen inhaalsprong.
 
-Buildidentiteit staat onderaan de pagina. Geen service worker of offline-cache. Vernieuwen haalt de gepubliceerde app op. Er is geen klimaatmodel in deze milestone.
+Buildidentiteit staat onderaan de pagina. Geen service worker of offline-cache. Vernieuwen haalt de gepubliceerde app op. Milestone 2 voegt een uniform energiebalansmodel toe. Afstand en albedo zijn instelbaar; de globale temperatuur en energiestromen komen uit C#. Zie SCIENCE.md.
 
 ## Acceptatie
 
@@ -30,3 +30,10 @@ Buildidentiteit staat onderaan de pagina. Geen service worker of offline-cache. 
 5. Wireframe werkt en de layout blijft bruikbaar op mobiel.
 6. Een verborgen tabblad telt geen extra tijd op.
 7. Een nieuwe geslaagde main-build toont de nieuwe commit onderaan.
+
+## Milestone 2 acceptatie
+
+- De referentie-evenwichtstemperatuur is circa 254.578 K.
+- Wijzig afstand en albedo tijdens pauze: het doel en de flux veranderen, de temperatuur springt niet.
+- Kies een week per seconde en hervat: een koudere forcing laat de temperatuur dalen.
+- Reset zet temperatuur op 230 K en behoudt de huidige forcing.

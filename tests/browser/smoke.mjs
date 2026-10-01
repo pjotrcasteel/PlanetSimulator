@@ -44,6 +44,31 @@ try {
     await page.locator('#pause').click();
     await page.locator('#reset').click();
     await page.waitForFunction(() => parseFloat(document.querySelector('#elapsed-days').textContent) === 0);
+    assert.equal(Number(await page.locator('#temperature').getAttribute('data-kelvin')), 230);
+    const referenceEquilibrium = Number(await page.locator('#equilibrium-temperature').getAttribute('data-kelvin'));
+    assert.ok(Math.abs(referenceEquilibrium - 254.578) < 0.001);
+    async function setRange(id, value) {
+        await page.locator(id).evaluate((element, next) => {
+            element.value = next;
+            element.dispatchEvent(new Event('input', { bubbles: true }));
+        }, value);
+    }
+    await setRange('#star-distance', '1.5');
+    await setRange('#albedo', '0.6');
+    await page.waitForFunction(() => Number(document.querySelector('#equilibrium-temperature').dataset.kelvin) < 200);
+    assert.equal(Number(await page.locator('#temperature').getAttribute('data-kelvin')), 230);
+    assert.ok(parseFloat(await page.locator('#net-flux').innerText()) < 0);
+    assert.equal(await page.locator('#thermal-trend').innerText(), 'Koelt af');
+    await page.selectOption('#speed', '604800');
+    await page.locator('#pause').click();
+    await page.waitForFunction(() => Number(document.querySelector('#temperature').dataset.kelvin) < 229);
+    await page.locator('#pause').click();
+    await page.locator('#reset').click();
+    await page.waitForFunction(() => Number(document.querySelector('#temperature').dataset.kelvin) === 230);
+    await setRange('#star-distance', '1');
+    await setRange('#albedo', '0.3');
+    await page.waitForFunction(() => Number(document.querySelector('#equilibrium-temperature').dataset.kelvin) > 254);
+    assert.equal(Number(await page.locator('#temperature').getAttribute('data-kelvin')), 230);
     await mkdir('artifacts/browser', { recursive: true });
     await page.screenshot({ path: 'artifacts/browser/desktop.png', fullPage: true });
     await page.locator('#wireframe').check();
@@ -63,7 +88,7 @@ try {
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false);
     assert.equal(await page.locator('.error').count(), 0);
     assert.deepEqual(errors, []);
-    console.log('Published Blazor app: subpath, WebGL start, pause, speed, reset, wireframe, camera and mobile layout passed.');
+    console.log('Published Blazor app: temperature, equilibrium, forcing, cooling, reset, pause, WebGL and responsive layout passed.');
 } finally {
     await browser.close();
     await new Promise(resolve => server.close(resolve));

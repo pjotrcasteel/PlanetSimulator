@@ -1,16 +1,30 @@
 ﻿namespace PlanetSimulator.Simulation;
 
 /// <summary>
-/// Exposes the same simulation clock and planetary rotation to browser and other hosts.
+/// Advances a shared clock, uniform energy balance and planetary rotation for every host.
 /// </summary>
 public sealed class SimulationSession
 {
     public SimulationClock Clock { get; } = new();
     public Planet Planet { get; } = new();
+    public EnergyBalanceModel Climate { get; private set; } = new();
 
     public SimulationSnapshot Advance(double realSeconds, CancellationToken cancellationToken)
     {
-        Clock.Advance(realSeconds, cancellationToken);
-        return new SimulationSnapshot(Clock.ElapsedSeconds, Planet.GetRotationRadians(Clock.ElapsedSeconds));
+        Clock.Advance(realSeconds, seconds => Climate.Advance(seconds, cancellationToken), cancellationToken);
+        return new SimulationSnapshot(
+            Clock.ElapsedSeconds,
+            Planet.GetRotationRadians(Clock.ElapsedSeconds),
+            Climate.TemperatureKelvin,
+            Climate.EquilibriumTemperatureKelvin,
+            Climate.AbsorbedWattsPerSquareMeter,
+            Climate.EmittedWattsPerSquareMeter);
+    }
+
+    public void Reset(CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        Clock.Reset();
+        Climate = new EnergyBalanceModel(Climate.Parameters);
     }
 }

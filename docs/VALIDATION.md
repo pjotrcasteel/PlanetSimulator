@@ -39,3 +39,9 @@ Workflow: https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/368590776
 Standaard Windows-build, zeven C#-tests, getrimde Blazor-publish op Ubuntu, twee Node-geometriechecks en Chromium-acceptatie zijn geslaagd. Desktop- en mobiele screenshots zijn visueel gecontroleerd. Pages-deployment is geslaagd; live build.json bevestigt commit 39106d74c98a60969e9a14b08e9229aeed58e66e op https://pjotrcasteel.github.io/PlanetSimulator/.
 
 De browserdemo is gepubliceerd. De handmatige acceptatie van de native Windows-app blijft open. Verborgen-tabbladgedrag is geïmplementeerd maar nog niet apart als browseracceptatietest uitgevoerd.
+
+## Milestone 2
+
+Lokale C#-tests: 17 geslaagd. Release-build van alle projecten: geslaagd met nul waarschuwingen en fouten, met dezelfde tijdelijke SDK-cache-workaround als bij milestone 1.5. Desktop-render met bitmapreadouts: uitgevoerd en visueel gecontroleerd. De rekenmodellen hebben geen workaround nodig.
+
+De standaard build, getrimde Blazor-publish, uitgebreide Chromium-acceptatie en live Pages-versie worden opnieuw door GitHub Actions gecontroleerd voordat oplevering is bevestigd.

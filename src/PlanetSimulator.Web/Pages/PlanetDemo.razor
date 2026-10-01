@@ -5,11 +5,12 @@
 <div class="shell">
     <header>
         <a class="brand" href="./"><span class="brand-mark">◉</span> PlanetSimulator</a>
-        <span class="milestone">MILESTONE 1.5 <span>·</span> BROWSERDEMO</span>
+        <span class="milestone">MILESTONE 2 <span>·</span> BROWSERDEMO</span>
     </header>
     <main>
+        <div class="world-column">
         <section class="viewer" aria-label="Interactieve planeet">
-            <div class="viewer-heading"><span class="eyebrow">EEN WERELD IN WORDING</span><h1>Het begint met een planeet.</h1></div>
+            <div class="viewer-heading"><span class="eyebrow">EEN WERELD IN WORDING</span><h1>De eerste warmtebalans.</h1></div>
             <canvas id="planet-canvas" @ref="canvas" aria-label="3D-planeet: sleep om te draaien en scroll om te zoomen" tabindex="0"></canvas>
             <div class="viewer-bottom"><span class="status-dot"></span><span>@(session.Clock.IsPaused ? "Gepauzeerd" : "Simulatie actief")</span><span class="mouse-hint">Slepen om te draaien · scrollen om te zoomen</span></div>
             @if (error is not null)
@@ -17,10 +18,24 @@
                 <div class="error" role="alert">@error</div>
             }
         </section>
+        <section class="energy-panel" aria-label="Energiebalans">
+            <div class="energy-header"><span class="eyebrow">GEMIDDELD OVER DE HELE PLANEET</span><span id="thermal-trend" class="trend">@ThermalTrend</span></div>
+            <div class="energy-row"><span>Opgenomen zonlicht</span><strong id="absorbed-flux">@F(session.Climate.AbsorbedWattsPerSquareMeter, "F1") W/m²</strong></div>
+            <div class="energy-track"><div class="incoming" style="width:@FluxWidth(session.Climate.AbsorbedWattsPerSquareMeter)%"></div></div>
+            <div class="energy-row"><span>Uitgestraalde warmte</span><strong id="emitted-flux">@F(session.Climate.EmittedWattsPerSquareMeter, "F1") W/m²</strong></div>
+            <div class="energy-track"><div class="outgoing" style="width:@FluxWidth(session.Climate.EmittedWattsPerSquareMeter)%"></div></div>
+            <div class="energy-summary"><span>Netto energiestroom</span><strong id="net-flux">@F(session.Climate.NetWattsPerSquareMeter, "+0.0;-0.0;0.0") W/m²</strong></div>
+            <p>Een positieve energiestroom warmt op. Een negatieve energiestroom koelt af. De warmtecapaciteit bepaalt hoe snel dat gaat.</p>
+        </section>
+        </div>
         <aside>
             <span class="eyebrow">REFERENTIEPLANEET</span>
-            <h2>Een eerste blik.</h2>
-            <p class="intro">Bekijk een eenvoudige wereldbol en verken hoe de simulatietijd haar rotatie bepaalt.</p>
+            <h2>Van licht naar warmte.</h2>
+            <p class="intro">Verander de afstand tot de ster of de reflectie en ontdek hoe de planeet naar een nieuw temperatuurevenwicht beweegt.</p>
+            <div class="temperature-card"><span>GLOBALE MODELTEMPERATUUR</span>
+                <strong id="temperature" data-kelvin="@F(session.Climate.TemperatureKelvin, "F6")">@F(session.Climate.TemperatureKelvin - 273.15) <small>°C</small></strong>
+                <div><span>@F(session.Climate.TemperatureKelvin) K</span><span>Evenwicht: <b id="equilibrium-temperature" data-kelvin="@F(session.Climate.EquilibriumTemperatureKelvin, "F6")">@F(session.Climate.EquilibriumTemperatureKelvin - 273.15) °C</b></span></div>
+            </div>
             <div class="time-card"><span>VERSTREKEN SIMULATIETIJD</span><strong id="elapsed-days">@((session.Clock.ElapsedSeconds / 86400).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)) <small>dagen</small></strong></div>
             <div class="controls">
                 <button id="pause" @onclick="TogglePause" disabled="@(!ready)">@(session.Clock.IsPaused ? "▶ Hervatten" : "Ⅱ Pauzeren")</button>
@@ -31,17 +46,30 @@
                 <option value="1">Realtime · 1×</option>
                 <option value="3600">1 uur per seconde · 3.600×</option>
                 <option value="86400">1 dag per seconde · 86.400×</option>
+                <option value="604800">1 week per seconde · 604.800×</option>
             </select>
             <label class="checkbox"><input id="wireframe" type="checkbox" @bind="wireframe" @bind:after="ChangeWireframeAsync" disabled="@(!ready)" /> Toon het geometrische rooster</label>
-            <dl><div><dt>Straal</dt><dd>6.371 km</dd></div><div><dt>Zwaartekracht</dt><dd>@session.Planet.SurfaceGravity.ToString("F2") m/s²</dd></div><div><dt>Rotatieperiode</dt><dd>24 uur</dd></div></dl>
-            <div class="note"><strong>De eerste bouwsteen</strong><p>Kleuren en lijnen zijn nu decoratief. Klimaat, water en leven volgen in de volgende milestones.</p></div>
+            <div class="forcing-controls">
+                <label for="star-distance">Afstand tot de ster <strong>@F(session.Climate.Parameters.DistanceAstronomicalUnits) AU</strong></label>
+                <input id="star-distance" type="range" min="0.5" max="2" step="0.05" value="@F(session.Climate.Parameters.DistanceAstronomicalUnits)" @oninput="ChangeDistance" disabled="@(!ready)" />
+                <label for="albedo">Reflectie (Bond-albedo) <strong>@F(session.Climate.Parameters.BondAlbedo * 100, "F0")%</strong></label>
+                <input id="albedo" type="range" min="0" max="0.8" step="0.01" value="@F(session.Climate.Parameters.BondAlbedo)" @oninput="ChangeAlbedo" disabled="@(!ready)" />
+                <p>AU = afstand aarde–zon. Reset herstart op 230 K met je huidige instellingen.</p>
+            </div>
+            <dl><div><dt>Straal</dt><dd>6.371 km</dd></div><div><dt>Zwaartekracht</dt><dd>@session.Planet.SurfaceGravity.ToString("F2") m/s²</dd></div><div><dt>Rotatieperiode</dt><dd>24 uur</dd></div><div><dt>Warmtecapaciteit</dt><dd>10 MJ/m²/K</dd></div></dl>
+            <div class="note"><strong>Een bewust eenvoudig model</strong><p>Eén uniforme temperatuur, zonder atmosfeer of broeikaseffect. Dit is geen voorspelling van de huidige aarde. Oppervlaktekleuren blijven decoratief.</p></div>
         </aside>
     </main>
-    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 1.5</span></footer>
+    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 2</span></footer>
 </div>
 
 @code {
     private readonly SimulationSession session = new();
+    private static string F(double value, string format = "F2") => value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
+    private string ThermalTrend => Math.Abs(session.Climate.NetWattsPerSquareMeter) < 0.1 ? "Bijna in evenwicht"
+        : session.Climate.NetWattsPerSquareMeter > 0 ? "Warmt op" : "Koelt af";
+
+    private string FluxWidth(double flux) => F(100 * flux / Math.Max(1, Math.Max(session.Climate.AbsorbedWattsPerSquareMeter, session.Climate.EmittedWattsPerSquareMeter)));
     private readonly CancellationTokenSource lifetime = new();
     private ElementReference canvas;
     private IJSObjectReference? module;
@@ -53,6 +81,7 @@
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+        session.Clock.Speed = 86400;
         try
         {
             module = await JS.InvokeAsync<IJSObjectReference>("import", lifetime.Token, "./js/planet.js");
@@ -87,8 +116,24 @@
 
     private async Task ResetAsync()
     {
-        session.Clock.Reset();
+        session.Reset(lifetime.Token);
         if (module is not null) await module.InvokeVoidAsync("resetCamera", lifetime.Token);
+    }
+
+    private void ChangeDistance(ChangeEventArgs args)
+    {
+        if (double.TryParse(args.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var distance))
+        {
+            session.Climate.SetForcing(distance, session.Climate.Parameters.BondAlbedo, lifetime.Token);
+        }
+    }
+
+    private void ChangeAlbedo(ChangeEventArgs args)
+    {
+        if (double.TryParse(args.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var albedo))
+        {
+            session.Climate.SetForcing(session.Climate.Parameters.DistanceAstronomicalUnits, albedo, lifetime.Token);
+        }
     }
 
     private async Task ChangeWireframeAsync()

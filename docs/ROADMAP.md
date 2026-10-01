@@ -20,11 +20,11 @@ Status: voltooid. Windows-build, zeven C#-tests, twee geometriechecks, Chromium-
 
 ## 2. Licht en temperatuur
 
-Globale stralingsbalans, albedo, warmtecapaciteit en emissie.
+Globale stralingsbalans met inverse kwadratenwet, Bond-albedo, warmtecapaciteit en Stefan–Boltzmann-emissie. Desktop en browser tonen temperatuur, evenwicht en energiestromen. Afstand en reflectie zijn als experimenten instelbaar. Eén week per seconde maakt de reactie zichtbaar.
 
-Acceptatie: Een referentiegeval bereikt de analytisch verwachte evenwichtstemperatuur.
+Acceptatie: analytisch referentie-evenwicht, energiebudget, stapgevoeligheid, warming/cooling en overeenkomst tussen hosts worden getest. Zie SCIENCE.md voor aannames en beperkingen.
 
-Status: Gepland.
+Status: geïmplementeerd; 17 lokale C#-tests en desktop-render geslaagd. Browseracceptatie en live publicatie worden gecontroleerd.
 
 ## 3. Experimenten
 

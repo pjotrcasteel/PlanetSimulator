@@ -6,13 +6,16 @@ using PlanetSimulator.Simulation;
 namespace PlanetSimulator.Desktop;
 
 /// <summary>
-/// Presents milestone one: a lit sphere, orbit camera and independent simulation clock.
+/// Presents a lit sphere and shared uniform climate model with interactive forcing controls.
 /// </summary>
 public sealed class PlanetGame : Game
 {
     private readonly GraphicsDeviceManager graphics;
-    private readonly SimulationClock clock = new();
-    private readonly Planet planet = new();
+    private readonly SimulationSession session = new();
+    private readonly CancellationTokenSource lifetime = new();
+    private SimulationClock Clock => session.Clock;
+    private SpriteBatch spriteBatch = null!;
+    private PixelTextRenderer text = null!;
     private readonly SphereMesh sphere = new();
     private BasicEffect effect = null!;
     private Texture2D surface = null!;
@@ -33,12 +36,15 @@ public sealed class PlanetGame : Game
             PreferredBackBufferHeight = 800,
             SynchronizeWithVerticalRetrace = true,
         };
+        Clock.Speed = 86400;
         Window.AllowUserResizing = true;
         IsMouseVisible = true;
     }
 
     protected override void LoadContent()
     {
+        spriteBatch = new SpriteBatch(GraphicsDevice);
+        text = new PixelTextRenderer(GraphicsDevice);
         effect = new BasicEffect(GraphicsDevice) { TextureEnabled = true, LightingEnabled = true, AmbientLightColor = new Vector3(0.06f) };
         effect.DirectionalLight0.Enabled = true;
         effect.DirectionalLight0.Direction = Vector3.Normalize(new Vector3(-1, -0.4f, -0.5f));
@@ -70,14 +76,19 @@ public sealed class PlanetGame : Game
             Exit();
         }
 
-        if (Pressed(keyboard, Keys.Space)) clock.IsPaused = !clock.IsPaused;
-        if (Pressed(keyboard, Keys.D1)) clock.Speed = 1;
-        if (Pressed(keyboard, Keys.D2)) clock.Speed = 3600;
-        if (Pressed(keyboard, Keys.D3)) clock.Speed = 86400;
+        if (Pressed(keyboard, Keys.Space)) Clock.IsPaused = !Clock.IsPaused;
+        if (Pressed(keyboard, Keys.D1)) Clock.Speed = 1;
+        if (Pressed(keyboard, Keys.D2)) Clock.Speed = 3600;
+        if (Pressed(keyboard, Keys.D3)) Clock.Speed = 86400;
+        if (Pressed(keyboard, Keys.D4)) Clock.Speed = 604800;
+        if (Pressed(keyboard, Keys.A)) ChangeForcing(0, 0.05);
+        if (Pressed(keyboard, Keys.Z)) ChangeForcing(0, -0.05);
+        if (Pressed(keyboard, Keys.PageUp)) ChangeForcing(0.1, 0);
+        if (Pressed(keyboard, Keys.PageDown)) ChangeForcing(-0.1, 0);
         if (Pressed(keyboard, Keys.W)) wireframe = !wireframe;
         if (Pressed(keyboard, Keys.R))
         {
-            clock.Reset();
+            session.Reset(lifetime.Token);
             yaw = 0.5f;
             pitch = 0.25f;
             distance = 3.5f;
@@ -94,9 +105,8 @@ public sealed class PlanetGame : Game
             distance = MathHelper.Clamp(distance - (mouse.ScrollWheelValue - previousMouse.ScrollWheelValue) * 0.002f, 1.4f, 12);
         }
 
-        clock.Advance(Math.Min(gameTime.ElapsedGameTime.TotalSeconds, 60), CancellationToken.None);
-        Window.Title = $"PlanetSimulator | day {clock.ElapsedSeconds / 86400:F2} | {clock.Speed:G}x | {(clock.IsPaused ? "PAUSED" : "RUNNING")}"
-            + " | drag: orbit / wheel: zoom / space: pause / 1-3: speed / W: mesh / R: reset";
+        session.Advance(Math.Min(gameTime.ElapsedGameTime.TotalSeconds, 60), lifetime.Token);
+        Window.Title = $"PlanetSimulator | {session.Climate.TemperatureKelvin:F2} K | day {Clock.ElapsedSeconds / 86400:F2} | {Clock.Speed:G}x";
         previousKeyboard = keyboard;
         previousMouse = mouse;
         base.Update(gameTime);
@@ -115,7 +125,7 @@ public sealed class PlanetGame : Game
         GraphicsDevice.RasterizerState = wireframe ? wire : solid;
         GraphicsDevice.SamplerStates[0] = SamplerState.LinearWrap;
         var camera = new Vector3(MathF.Cos(pitch) * MathF.Sin(yaw), MathF.Sin(pitch), MathF.Cos(pitch) * MathF.Cos(yaw)) * distance;
-        effect.World = Matrix.CreateRotationY((float)planet.GetRotationRadians(clock.ElapsedSeconds));
+        effect.World = Matrix.CreateRotationY((float)session.Planet.GetRotationRadians(Clock.ElapsedSeconds));
         effect.View = Matrix.CreateLookAt(camera, Vector3.Zero, Vector3.Up);
         effect.Projection = Matrix.CreatePerspectiveFieldOfView(MathHelper.PiOver4, GraphicsDevice.Viewport.AspectRatio, 0.01f, 100);
         foreach (var pass in effect.CurrentTechnique.Passes)
@@ -124,6 +134,7 @@ public sealed class PlanetGame : Game
             GraphicsDevice.DrawUserIndexedPrimitives(PrimitiveType.TriangleList, sphere.Vertices, 0, sphere.Vertices.Length, sphere.Indices, 0, sphere.Indices.Length / 3);
         }
 
+        DrawReadouts();
         if (capture is not null)
         {
             GraphicsDevice.SetRenderTarget(null);
@@ -137,12 +148,52 @@ public sealed class PlanetGame : Game
 
     protected override void UnloadContent()
     {
+        lifetime.Cancel();
+        lifetime.Dispose();
+        spriteBatch.Dispose();
+        text.Dispose();
         effect.Dispose();
         surface.Dispose();
         solid.Dispose();
         wire.Dispose();
         base.UnloadContent();
     }
+
+    private void ChangeForcing(double distanceChange, double albedoChange)
+    {
+        var parameters = session.Climate.Parameters;
+        var starDistance = Math.Clamp(parameters.DistanceAstronomicalUnits + distanceChange, 0.5, 2);
+        var albedo = Math.Clamp(parameters.BondAlbedo + albedoChange, 0, 0.8);
+        session.Climate.SetForcing(starDistance, albedo, lifetime.Token);
+    }
+
+    private void DrawReadouts()
+    {
+        var climate = session.Climate;
+        var mint = new Color(139, 216, 191);
+        var muted = new Color(159, 177, 193);
+        spriteBatch.Begin(samplerState: SamplerState.PointClamp);
+        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 2", new Vector2(24, 24), mint);
+        var lines = new[]
+        {
+            $"TEMPERATURE: {F(climate.TemperatureKelvin)} K / {F(climate.TemperatureKelvin - 273.15)} C",
+            $"EQUILIBRIUM: {F(climate.EquilibriumTemperatureKelvin)} K",
+            $"ABSORBED: {F(climate.AbsorbedWattsPerSquareMeter)} W/M2",
+            $"EMITTED: {F(climate.EmittedWattsPerSquareMeter)} W/M2",
+            $"NET: {F(climate.NetWattsPerSquareMeter)} W/M2",
+            $"DISTANCE: {F(climate.Parameters.DistanceAstronomicalUnits)} AU / ALBEDO: {F(climate.Parameters.BondAlbedo * 100)}%",
+            $"DAY: {F(Clock.ElapsedSeconds / 86400)} / SPEED: {Clock.Speed:G}X",
+            Clock.IsPaused ? "PAUSED" : "RUNNING",
+        };
+        for (var index = 0; index < lines.Length; index++) text.Draw(spriteBatch, lines[index], new Vector2(24, 54 + index * 23), muted);
+        var bottom = GraphicsDevice.Viewport.Height - 92;
+        text.Draw(spriteBatch, "DRAG: ORBIT / WHEEL: ZOOM / SPACE: PAUSE / R: RESET", new Vector2(24, bottom), muted);
+        text.Draw(spriteBatch, "1-4: SPEED / A-Z: ALBEDO / PAGE UP-DOWN: DISTANCE / W: WIREFRAME", new Vector2(24, bottom + 23), muted);
+        text.Draw(spriteBatch, "UNIFORM BLACKBODY MODEL / NO ATMOSPHERE / DECORATIVE SURFACE", new Vector2(24, bottom + 46), mint);
+        spriteBatch.End();
+    }
+
+    private static string F(double value) => value.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
 
     private bool Pressed(KeyboardState keyboard, Keys key) => keyboard.IsKeyDown(key) && previousKeyboard.IsKeyUp(key);
 }

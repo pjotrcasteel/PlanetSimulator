@@ -2,13 +2,17 @@
 
 Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbouwde terraforming-simulator met een overtuigende 3D-planeet.
 
-## Milestone 1
+**Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
-Een eenvoudige belichte 3D-bol, orbitcamera, wireframe en een onafhankelijke simulatieklok. De strepen en het rooster zijn decoratief en maken rotatie zichtbaar. Er is nog geen klimaat, echte topografie, oceaan of atmosfeer. De planeet gebruikt aardachtige massa, straal en een expliciete rotatieperiode van 24 uur; dit is een fictief referentiescenario.
+## Milestone 2: licht en temperatuur
+
+Bekijk een eenvoudige belichte 3D-planeet en verander afstand tot de ster en reflectie. De gedeelde C#-kern berekent een uniforme temperatuur, warmtestraling en energiebalans. De werkelijke temperatuur verandert geleidelijk; de berekende evenwichtstemperatuur reageert direct op nieuwe instellingen.
+
+Dit is een model zonder atmosfeer of broeikaseffect. Kleuren en rooster zijn decoratief; er zijn nog geen continenten, oceanen, regionale temperaturen of ecosystemen. De referentieplaneet heeft aardachtige massa en straal, met 24 uur rotatietijd. De modeltemperatuur is geen voorspelling voor de huidige aarde.
 
 ## Starten
 
-Installeer de .NET 10 SDK op Windows en voer vanuit deze map uit:
+Installeer .NET 10 en voer vanuit deze map uit:
 
 ```powershell
 dotnet restore PlanetSimulator.slnx
@@ -17,48 +21,38 @@ dotnet test PlanetSimulator.slnx
 dotnet run --project src/PlanetSimulator.Desktop
 ```
 
-Open PlanetSimulator.slnx eventueel in een IDE die .NET 10 en slnx ondersteunt. Geen betaalde engine, afbeeldingen, fonts of content-build-tools nodig. DesktopGL heeft een grafische desktop en werkende OpenGL-driver nodig; Windows is het eerste testdoel.
-
-## Bediening
-
-| Actie | Bediening |
-|---|---|
-| Camera draaien | Linkermuisknop slepen |
-| Zoomen | Muiswiel |
-| Pauze | Spatie |
-| 1 seconde per echte seconde | 1 |
-| 1 uur per echte seconde | 2 (standaard) |
-| 1 dag per echte seconde | 3 |
-| Wireframe | W |
-| Tijd en camera resetten | R |
-| Afsluiten | Escape |
-
-Tijd, snelheid en pauzestatus staan in de venstertitel. Op 1x blijft de simulatieklok in stappen van één minuut werken; dit is bewust. Camerabediening blijft tijdens pauze beschikbaar.
-
-## Architectuur
-
-- Simulation: uitsluitend double-precisie, SI-eenheden en vaste stappen; geen MonoGame-afhankelijkheid.
-- Desktop: presentatie, procedurele sphere-mesh en input. Een renderunit is de planeetstraal, geen meter.
-- Tests: klokgedrag, partitionering, pauze, reset, validatie, cancellation en rotatie.
-
-De klok is nog geen integrator: milestone 2 moet iedere vaste stap aan de modelberekeningen doorgeven. Visuele verlichting is nu een illustratie en berekent geen warmtestroom. De mesh gebruikt voorlopig geen face-culling; optimalisatie volgt later.
-
-## Validatie en publicatie
-
-GitHub Actions bouwt en test op Windows en maakt een zelfstandig Windows-downloadpakket. Zie docs/VALIDATION.md voor de werkelijke lokale validatiestatus. De broncode staat in de private repository https://github.com/pjotrcasteel/PlanetSimulator.
-
-Zie [de roadmap](docs/ROADMAP.md) voor de volledige ontwikkelroute.
-
-![Milestone 1](docs/milestone-1.png)
-
-## Browserdemo (milestone 1.5)
-
-De browserdemo gebruikt dezelfde C#-simulatiekern via Blazor WebAssembly. De 3D-presentatie gebruikt WebGL 2 zonder externe CDN of betaalde engine.
+Voor de browserdemo:
 
 ```powershell
 dotnet run --project src/PlanetSimulator.Web --urls http://localhost:5080
 ```
 
-Open http://localhost:5080. Een verborgen tabblad telt geen simulatietijd op. De minutenstappen zijn gelijk aan de desktopapp. Voor de dependency-free rendererchecks: `node --test tests/browser/geometry.test.mjs` (Node 22+).
+Open http://localhost:5080. DesktopGL vereist een grafische desktop en werkende OpenGL-driver. Een IDE moet .NET 10 en slnx ondersteunen. Geen betaalde engine, fonts of content-build-tools nodig.
 
-Live demo: https://pjotrcasteel.github.io/PlanetSimulator/. De workflow publiceert na een succesvolle Windows-build en tests. Zie [Pages-inrichting](docs/WEB-DEMO.md) voor de eenmalige instelling en beschikbaarheid bij een private repo.
+## Desktopbediening
+
+| Actie | Bediening |
+|---|---|
+| Camera draaien / zoomen | Linkermuisknop slepen / muiswiel |
+| Pauzeren / hervatten | Spatie |
+| Realtime / uur / dag / week per seconde | 1 / 2 / 3 / 4 |
+| Reflectie verhogen / verlagen | A / Z |
+| Afstand verhogen / verlagen | Page Up / Page Down |
+| Wireframe | W |
+| Temperatuur, tijd en camera resetten | R |
+| Afsluiten | Escape |
+
+De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset herstart de temperatuur op 230 K en behoudt je gekozen afstand, reflectie, pauzestatus en snelheid. Beide hosts starten met één simulatiedag per echte seconde. Een verborgen browsertabblad bouwt geen tijd op.
+
+## Architectuur en controles
+
+- Simulation: double-precisie, SI-eenheden, vaste stappen van 60 seconden, RK4 en energiebudgetten.
+- Desktop: MonoGame-presentatie, orbitcamera en ingebouwde bitmaptekst.
+- Web: Blazor WebAssembly met dezelfde C#-kern; WebGL 2 doet uitsluitend weergave en camerabediening.
+- Tests: 17 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
+
+Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle gebruikt `npm ci`, `npx playwright install chromium` en `npm run test:smoke -- artifacts/web/wwwroot` op een gepubliceerd pakket met het /PlanetSimulator/-basepad.
+
+GitHub Actions bouwt en test op Windows, maakt een zelfstandige Windows-download en publiceert na geslaagde browsercontroles naar Pages. Downloadbare pakketten en screenshots staan bij de workflow. De repository blijft private.
+
+Zie [wetenschappelijke aannames](docs/SCIENCE.md), [roadmap](docs/ROADMAP.md), [validatiestatus](docs/VALIDATION.md) en [Pages-inrichting](docs/WEB-DEMO.md).
