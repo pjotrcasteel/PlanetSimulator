@@ -18,6 +18,8 @@ De regionale kern bevat nu ook een expliciete gasinventaris en een kleine chemie
 
 ## Starten
 
+Kies **Atmosfeer en CO₂** in de demo. Kies **Waterwereld · 285 K** om opname in vloeibaar water te volgen. In het experimentformulier kun je droge druk, CO₂ in ppm en uitgassing instellen; de CSV bevat alle dagmonsters en balansen. **Y** schakelt de waterkringloop in de desktopapp; **U** schakelt de gaslaag (beide herstarten de tijd).
+
 Installeer .NET 10 en voer vanuit deze map uit:
 
 ```powershell
@@ -64,11 +66,11 @@ De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset hersta
 - Simulation: double-precisie, SI-eenheden, vaste stappen van 60 seconden, RK4 en energiebudgetten.
 - Desktop: MonoGame-presentatie, orbitcamera en ingebouwde bitmaptekst.
 - Web: Blazor WebAssembly met dezelfde C#-kern; WebGL 2 doet uitsluitend weergave en camerabediening.
-- Tests: 35 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
+- Tests: 60 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
 
 Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle gebruikt `npm ci`, `npx playwright install chromium` en `npm run test:smoke -- artifacts/web/wwwroot` op een gepubliceerd pakket met het /PlanetSimulator/-basepad.
 
-GitHub Actions bouwt en test op Windows, maakt een zelfstandige Windows-download en publiceert na geslaagde browsercontroles naar Pages. Downloadbare pakketten en screenshots staan bij de workflow. De repository blijft private.
+GitHub Actions bouwt en test op Windows, maakt een zelfstandige Windows-download en publiceert na geslaagde browsercontroles naar Pages. Downloadbare pakketten en screenshots staan bij de workflow.
 
 Zie [scenario’s en experimenten](docs/EXPERIMENTS.md), [wetenschappelijke aannames](docs/SCIENCE.md), [roadmap](docs/ROADMAP.md), [validatiestatus](docs/VALIDATION.md) en [Pages-inrichting](docs/WEB-DEMO.md).
 
