@@ -174,6 +174,20 @@ public sealed class RegionalClimateTests
         Assert.ThrowsExactly<ArgumentException>(() => ScenarioJson.Deserialize(ScenarioJson.Serialize(scenario).Replace("\"yearDays\": 365.25", "\"wrongYear\": 365.25")));
     }
 
+    [TestMethod]
+    public void Hydrology_ConservesWaterAndKeepsPhaseMassesNonNegative()
+    {
+        var model = new RegionalClimateModel(climate: new ClimateParameters(initialTemperatureKelvin: 285), surface: new SurfaceParameters(),
+            waterCycle: new WaterCycleParameters());
+        for (var step = 0; step < 120; step++) model.Advance(60, TestContext.CancellationToken);
+        var surface = model.Snapshot().Surface!;
+        Assert.AreEqual(0, surface.WaterMassErrorKilograms / surface.TotalWaterMassKilograms, 1e-12);
+        Assert.IsTrue(surface.WaterMassPerSquareMeter.All(value => value >= 0));
+        Assert.IsTrue(surface.LiquidMassPerSquareMeter.All(value => value >= 0));
+        Assert.IsTrue(surface.IceMassPerSquareMeter.All(value => value >= 0));
+        Assert.IsTrue(surface.WaterCycle!.VaporMassPerSquareMeter.All(value => value >= 0));
+    }
+
     private void Integrate(RegionalClimateModel model, int seconds, int step)
     {
         for (var time = 0; time < seconds; time += step) model.Advance(step, TestContext.CancellationToken);

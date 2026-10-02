@@ -3,13 +3,13 @@
 @inject IJSRuntime JS
 
 <section class="experiment-panel" aria-label="Reproduceerbare experimenten">
-    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 6 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
+    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 8 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
         <p>Elke run begint opnieuw. Vergelijk temperatuurcurves en bewaar alle beginwaarden en geplande wijzigingen in een scenario.</p></div>
     <div class="experiment-layout">
         <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
             <fieldset disabled="@busy">
                 <label for="experiment-model">Model voor dit experiment</label>
-                <select id="experiment-model" value="@(surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option></select>
+                <select id="experiment-model" value="@(chemistry is not null ? "chemistry" : hydrology is not null ? "hydrology" : surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option><option value="hydrology">Waterkringloop</option><option value="chemistry">Atmosfeer en CO₂</option></select>
                 @if (regionalModel)
                 {
                     <div class="parameter-grid">
@@ -25,7 +25,16 @@
                         <div><label for="experiment-relief">Terreinreliëf (m)</label><input id="experiment-relief" type="number" min="0" max="5000" step="any" required @bind="relief" /></div>
                         <div><label for="experiment-water">Waterinventaris (m wereldwijd)</label><input id="experiment-water" type="number" min="0" max="5000" step="any" required @bind="waterDepth" /></div>
                     </div>
-                    <p class="field-hint">Volledige kolommen delen één temperatuur; diepe reservoirs reageren traag. Bevriezen en smelten kosten energie. Geen verdamping of stroming; uniforme reflectie.</p>
+                    <p class="field-hint">Volledige kolommen delen één temperatuur; diepe reservoirs reageren traag. Bevriezen en smelten kosten energie. De waterkringloop voegt verdamping en afvoer toe; reflectie blijft uniform.</p>
+                }
+                @if (chemistry is not null)
+                {
+                    <div class="parameter-grid">
+                        <div><label for="gas-pressure">Droge luchtdruk (Pa)</label><input id="gas-pressure" type="number" min="0" max="20000000" step="any" required @bind="pressure" /></div>
+                        <div><label for="gas-co2">CO₂ (ppm, vervangt N₂)</label><input id="gas-co2" type="number" min="0" max="@((1 - chemistry.OxygenMoleFraction - chemistry.ArgonMoleFraction) * 1e6)" step="any" required @bind="co2Ppm" /></div>
+                        <div><label for="gas-outgassing">Uitgassing (kg/m²/jaar)</label><input id="gas-outgassing" type="number" min="0" max="1000000" step="any" required @bind="outgassing" /></div>
+                    </div>
+                    <p class="field-hint">CO₂ lost op in vloeibaar water en komt vrij bij drogen of bevriezen. De korstvoorraad is eindig. Nog geen broeikaseffect.</p>
                 }
                 <label for="scenario-name">Scenarionaam</label><input id="scenario-name" required maxlength="80" @bind="name" />
                 <div class="parameter-grid">
@@ -87,6 +96,10 @@
                 {
                     <p id="experiment-water-summary" data-liquid-fraction="@F(water.LiquidMassFraction, "R")">Vloeibaar: @F(water.LiquidMassFraction * 100)% · watermassa: @F(water.TotalWaterMassKilograms, "G4") kg · afwijking: @F(water.WaterMassErrorKilograms, "G3") kg</p>
                 }
+                @if (Selected.Regional?.Atmosphere is { } gas)
+                {
+                    <p id="experiment-atmosphere-summary">Droge druk: @F(gas.MeanSurfacePressurePascals) Pa · CO₂: @F(gas.MeanCarbonDioxideMoleFraction * 1e6) ppm · koolstofafwijking: @F(gas.CarbonMassErrorKilograms, "G3") kg</p>
+                }
                 <dl class="sample-readout"><div><dt>Temperatuur</dt><dd id="sample-temperature" data-kelvin="@F(Selected.TemperatureKelvin, "R")">@F(Selected.TemperatureKelvin - 273.15) °C</dd></div>
                     <div><dt>Netto vermogen</dt><dd>@F(Selected.AbsorbedWattsPerSquareMeter - Selected.EmittedWattsPerSquareMeter) W/m²</dd></div>
                     <div><dt>Budgetafwijking</dt><dd>@F(Selected.BudgetErrorJoulesPerSquareMeter, "G3") J/m²</dd></div></dl>
@@ -113,6 +126,9 @@
 
 @code {
     private bool regionalModel, surfaceModel;
+    private WaterCycleParameters? hydrology;
+    private AtmosphereParameters? chemistry;
+    private double pressure = 101325, co2Ppm = 400, outgassing;
     private double relief = 10, waterDepth = 3;
     private double tilt = 23.44, diffusion = 0.6, yearDays = 365.25;
     private string name = "Referentieplaneet";
@@ -156,16 +172,33 @@
     {
         var climate = new ClimateParameters(distance, albedo, capacity * 1e6, initialTemperature, luminosity);
         var events = changes.Select(c => new ForcingChange { Day = c.Day, DistanceAstronomicalUnits = c.Distance, BondAlbedo = c.Albedo }).ToArray();
-        if (surfaceModel) return ExperimentScenario.CreateSurface(name, days, climate, new RegionalParameters(tilt, diffusion, yearDays),
-            new SurfaceParameters(relief, waterDepth), events);
-        return regionalModel ? ExperimentScenario.CreateRegional(name, days, climate, new RegionalParameters(tilt, diffusion, yearDays), events)
+        var scenario = regionalModel
+            ? ExperimentScenario.CreateRegional(name, days, climate, new RegionalParameters(tilt, diffusion, yearDays), events)
             : ExperimentScenario.Create(name, days, climate, events);
+        if (surfaceModel) scenario = scenario with { Surface = new SurfaceParameters(relief, waterDepth), ModelVersion = ExperimentScenario.SurfaceModelVersion };
+        if (hydrology is not null) scenario = scenario with { Hydrology = hydrology, ModelVersion = ExperimentScenario.HydrologyModelVersion };
+        if (chemistry is not null)
+        {
+            var fraction = co2Ppm == chemistry.CarbonDioxideMoleFraction * 1e6 ? chemistry.CarbonDioxideMoleFraction : co2Ppm / 1e6;
+            var atmosphere = chemistry with { SurfacePressurePascals = pressure, CarbonDioxideMoleFraction = fraction,
+                NitrogenMoleFraction = fraction == chemistry.CarbonDioxideMoleFraction ? chemistry.NitrogenMoleFraction
+                    : chemistry.NitrogenMoleFraction + chemistry.CarbonDioxideMoleFraction - fraction,
+                Co2OutgassingKilogramsPerSquareMeterPerYear = outgassing };
+            scenario = scenario with { Atmosphere = atmosphere, ModelVersion = ExperimentScenario.AtmosphereModelVersion };
+        }
+        scenario.Validate();
+        return scenario;
     }
 
     private void SelectExperimentModel(ChangeEventArgs args)
     {
-        surfaceModel = args.Value?.ToString() == "surface";
-        regionalModel = surfaceModel || args.Value?.ToString() == "regional";
+        var choice = args.Value?.ToString();
+        chemistry = choice == "chemistry" ? new AtmosphereParameters() : null;
+        hydrology = choice is "hydrology" or "chemistry" ? new WaterCycleParameters() : null;
+        surfaceModel = choice is "surface" or "hydrology" or "chemistry";
+        regionalModel = surfaceModel || choice == "regional";
+        if (hydrology is not null) { days = 30; initialTemperature = 285; }
+        pressure = 101325; co2Ppm = 400; outgassing = 0;
     }
 
     private void AddChange() => changes.Add(new ChangeDraft { Day = changes.Count == 0 ? Math.Min(30, days - 1) : changes[^1].Day + 1, Distance = distance, Albedo = albedo });
@@ -244,6 +277,13 @@
         name = scenario.Name; days = scenario.DurationDays;
         regionalModel = scenario.Regional is not null;
         surfaceModel = scenario.Surface is not null;
+        hydrology = scenario.Hydrology;
+        chemistry = scenario.Atmosphere;
+        if (chemistry is not null)
+        {
+            pressure = chemistry.SurfacePressurePascals; co2Ppm = chemistry.CarbonDioxideMoleFraction * 1e6;
+            outgassing = chemistry.Co2OutgassingKilogramsPerSquareMeterPerYear;
+        }
         if (scenario.Surface is { } surface) { relief = surface.ReliefMeters; waterDepth = surface.WaterEquivalentDepthMeters; }
         if (scenario.Regional is { } regional)
         { tilt = regional.AxialTiltDegrees; diffusion = regional.HeatDiffusionWattsPerSquareMeterKelvin; yearDays = regional.YearDays; }

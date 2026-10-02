@@ -10,15 +10,19 @@ public sealed class SimulationSession
     public Planet Planet { get; } = new();
     public EnergyBalanceModel Climate { get; private set; }
     public RegionalClimateModel? Regional { get; private set; }
+    public AtmosphereParameters? Atmosphere => Regional?.Atmosphere;
     public double CumulativeAbsorbedJoulesPerSquareMeter => Regional?.CumulativeAbsorbedJoulesPerSquareMeter ?? Climate.CumulativeAbsorbedJoulesPerSquareMeter;
     public double CumulativeEmittedJoulesPerSquareMeter => Regional?.CumulativeEmittedJoulesPerSquareMeter ?? Climate.CumulativeEmittedJoulesPerSquareMeter;
     public double EnergyBalanceErrorJoulesPerSquareMeter => Regional?.EnergyBalanceErrorJoulesPerSquareMeter ?? Climate.EnergyBalanceErrorJoulesPerSquareMeter;
 
-    public SimulationSession(ClimateParameters? parameters = null, RegionalParameters? regional = null, SurfaceParameters? surface = null)
+    public SimulationSession(ClimateParameters? parameters = null, RegionalParameters? regional = null, SurfaceParameters? surface = null,
+        WaterCycleParameters? waterCycle = null, AtmosphereParameters? atmosphere = null)
     {
         if (surface is not null && regional is null) throw new ArgumentException("Surface reservoirs require a regional model.", nameof(surface));
+        if (waterCycle is not null && surface is null) throw new ArgumentException("The water cycle requires surface reservoirs.", nameof(waterCycle));
+        if (atmosphere is not null && regional is null) throw new ArgumentException("The atmosphere requires a regional model.", nameof(atmosphere));
         Climate = new EnergyBalanceModel(parameters);
-        if (regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, regional, surface: surface);
+        if (regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, regional, surface: surface, waterCycle: waterCycle, atmosphere: atmosphere);
     }
 
     public SimulationSnapshot Advance(double realSeconds, CancellationToken cancellationToken)
@@ -66,7 +70,27 @@ public sealed class SimulationSession
     {
         cancellationToken.ThrowIfCancellationRequested();
         if (Regional is null) throw new InvalidOperationException("Surface reservoirs require a regional model.");
-        Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: surface);
+        Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: surface,
+            waterCycle: surface is null ? null : Regional.WaterCycle, atmosphere: surface is null ? null : Regional.Atmosphere);
+        Clock.Reset();
+    }
+
+    public void SelectWaterCycle(WaterCycleParameters? waterCycle, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Regional is null) throw new InvalidOperationException("The water cycle requires a regional model.");
+        if (waterCycle is not null && Regional.Surface is null) throw new InvalidOperationException("The water cycle requires surface reservoirs.");
+        Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: Regional.Surface?.Parameters, waterCycle: waterCycle,
+            atmosphere: Regional.Atmosphere);
+        Clock.Reset();
+    }
+
+    public void SelectAtmosphere(AtmosphereParameters? atmosphere, CancellationToken cancellationToken)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Regional is null) throw new InvalidOperationException("The atmosphere requires a regional model.");
+        Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: Regional.Surface?.Parameters,
+            waterCycle: Regional.WaterCycle, atmosphere: atmosphere);
         Clock.Reset();
     }
 
@@ -75,6 +99,8 @@ public sealed class SimulationSession
         cancellationToken.ThrowIfCancellationRequested();
         Clock.Reset();
         Climate = new EnergyBalanceModel(Climate.Parameters);
-        if (Regional is not null) Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: Regional.Surface?.Parameters);
+        if (Regional is not null)
+            Regional = new RegionalClimateModel(Climate.Parameters, Regional.Parameters, surface: Regional.Surface?.Parameters,
+                waterCycle: Regional.WaterCycle, atmosphere: Regional.Atmosphere);
     }
 }

@@ -15,4 +15,7 @@ public sealed record SurfaceSnapshot
     public required double LiquidMassFraction { get; init; }
     public required double TotalWaterMassKilograms { get; init; }
     public required double WaterMassErrorKilograms { get; init; }
+    public double TotalSurfaceWaterMassKilograms { get; init; }
+    public double AtmosphericWaterMassKilograms { get; init; }
+    public WaterCycleSnapshot? WaterCycle { get; init; }
 }

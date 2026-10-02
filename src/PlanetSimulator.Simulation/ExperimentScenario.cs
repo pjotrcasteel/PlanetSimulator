@@ -11,10 +11,16 @@ public sealed record ExperimentScenario
     public const string CurrentModelVersion = "global-blackbody-rk4-60s-v1";
     public const string RegionalModelVersion = "regional-blackbody-rk4-60s-12x24-v1";
     public const string SurfaceModelVersion = "surface-enthalpy-rk4-60s-12x24-v1";
+    public const string HydrologyModelVersion = "hydrology-rk4-60s-12x24-v1";
+    public const string AtmosphereModelVersion = "atmosphere-chemistry-rk4-60s-12x24-v1";
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SurfaceParameters? Surface { get; init; }
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RegionalParameters? Regional { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public WaterCycleParameters? Hydrology { get; init; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public AtmosphereParameters? Atmosphere { get; init; }
     public required int FormatVersion { get; init; }
     public required string ModelVersion { get; init; }
     public required string Name { get; init; }
@@ -54,15 +60,60 @@ public sealed record ExperimentScenario
         return scenario;
     }
 
+    public static ExperimentScenario CreateHydrology(string name, int durationDays, ClimateParameters climate, RegionalParameters regional,
+        SurfaceParameters surface, WaterCycleParameters hydrology)
+    {
+        ArgumentNullException.ThrowIfNull(hydrology);
+        var scenario = CreateSurface(name, durationDays, climate, regional, surface) with
+        {
+            Hydrology = hydrology,
+            ModelVersion = HydrologyModelVersion,
+        };
+        scenario.Validate();
+        return scenario;
+    }
+
+    public static ExperimentScenario CreateAtmosphere(string name, int durationDays, ClimateParameters climate, RegionalParameters regional,
+        AtmosphereParameters atmosphere, params ForcingChange[] changes)
+    {
+        ArgumentNullException.ThrowIfNull(atmosphere);
+        var scenario = CreateRegional(name, durationDays, climate, regional, changes) with
+        {
+            Atmosphere = atmosphere,
+            ModelVersion = AtmosphereModelVersion,
+        };
+        scenario.Validate();
+        return scenario;
+    }
+
+    public static ExperimentScenario CreateAtmosphereWithSurface(string name, int durationDays, ClimateParameters climate,
+        RegionalParameters regional, SurfaceParameters surface, AtmosphereParameters atmosphere)
+    {
+        ArgumentNullException.ThrowIfNull(atmosphere);
+        var scenario = CreateSurface(name, durationDays, climate, regional, surface) with
+        {
+            Atmosphere = atmosphere,
+            ModelVersion = AtmosphereModelVersion,
+        };
+        scenario.Validate();
+        return scenario;
+    }
+
     public void Validate()
     {
-        if (FormatVersion != CurrentFormatVersion || ModelVersion != (Surface is not null ? SurfaceModelVersion : Regional is null ? CurrentModelVersion : RegionalModelVersion))
+        var expectedVersion = Atmosphere is not null ? AtmosphereModelVersion :
+            Hydrology is not null ? HydrologyModelVersion :
+            Surface is not null ? SurfaceModelVersion : Regional is null ? CurrentModelVersion : RegionalModelVersion;
+        if (FormatVersion != CurrentFormatVersion || ModelVersion != expectedVersion)
             throw new ArgumentException("Onbekende scenario- of modelversie.");
         if (Surface is not null && Regional is null) throw new ArgumentException("Waterreservoirs vereisen een regionaal model.");
+        if (Hydrology is not null && (Surface is null || Regional is null)) throw new ArgumentException("Hydrologie vereist oppervlak en regionaal model.");
+        if (Atmosphere is not null && Regional is null) throw new ArgumentException("De atmosfeer vereist een regionaal model.");
         if (string.IsNullOrWhiteSpace(Name) || Name.Length > 80) throw new ArgumentException("Geef een naam van 1–80 tekens.");
         if (DurationDays is < 1 or > 730) throw new ArgumentException("De duur moet 1–730 dagen zijn.");
         if (Climate is null) throw new ArgumentException("Beginwaarden ontbreken.");
         if (Changes is null || Changes.Length > 32) throw new ArgumentException("Maximaal 32 wijzigingen toegestaan.");
+        Atmosphere?.ValidateRuntimeValues();
         var previousDay = 0;
         foreach (var change in Changes)
         {

@@ -4,9 +4,9 @@ Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbo
 
 **Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
-## Milestone 6: een zichtbare planeet
+## Milestone 8: atmosfeer en CO₂-uitwisseling
 
-Terrein, rotsachtig land, water, ijs en een optische atmosfeer vormen de nieuwe planeetweergave. Kies een koude of warme startwereld en bekijk hoe de berekende toestand verandert.
+Waterkringloop, droge gasdruk en CO₂-uitwisseling zijn toegevoegd aan de bestaande planeetweergave. Kies een koude of warme startwereld en bekijk hoe de berekende toestand verandert.
 
 De planeet heeft 288 cellen met gelijke oppervlaktes, eigen temperaturen, dag/nacht, seizoenen door ashelling en conservatief warmtetransport. De temperatuurkaart volgt de berekende celwaarden op een vaste schaal van 170–330 K. De globale temperatuur en warmtestraling zijn oppervlaktegemiddelden. Kies het uniforme model om oudere experimenten te herhalen.
 
@@ -14,7 +14,7 @@ Maak een scenario, voer een experiment uit en vergelijk de temperatuurcurve met 
 
 Bekijk ook een eenvoudige belichte 3D-planeet en verander afstand tot de ster en reflectie. De gedeelde C#-kern berekent temperatuur, warmtestraling en energiebalans voor het gekozen model. De werkelijke temperatuur verandert geleidelijk; de berekende evenwichtstemperatuur reageert direct op nieuwe instellingen.
 
-Dit is een model zonder atmosfeer of broeikaseffect. De planeetweergave volgt synthetisch terrein, waterreservoirs en ijs uit het model. Een aparte temperatuurkaart toont de 288 klimaatrekencellen. Atmosferische gloed is een optisch effect; wind en ecosystemen volgen later. De referentieplaneet heeft aardachtige massa en straal, met 24 uur rotatietijd. De modeltemperatuur is geen voorspelling voor de huidige aarde.
+De regionale kern bevat nu ook een expliciete gasinventaris en een kleine chemieset: N₂, O₂, CO₂ en Ar worden als kolommassa’s bijgehouden, met totale druk uit zwaartekracht en partiële drukken uit molfracties. CO₂ kan naar vloeibaar water oplossen en vanuit een eindige korstvoorraad vrijkomen; C/O/N-balansen en negatieve voorraden worden gecontroleerd. Dit is nog geen volledig broeikaseffect, oceaanchemie of aardmodel. De optische gloed blijft een presentatie-effect. De modeltemperatuur is geen voorspelling voor de huidige aarde.
 
 ## Starten
 

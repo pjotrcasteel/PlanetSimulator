@@ -9,12 +9,15 @@ namespace PlanetSimulator.Simulation;
 public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList<ExperimentSample> Samples)
 {
     public SurfaceSnapshot? FinalSurface { get; init; }
+    public AtmosphereSnapshot? FinalAtmosphere { get; init; }
     public IReadOnlyList<double> FinalRegions { get; init; } = [];
     public string ToRegionalCsv()
     {
         var grid = new SphericalGrid();
         var csv = new StringBuilder("cell,latitude_deg,longitude_deg,area_m2,temperature_K");
         if (FinalSurface is not null) csv.Append(",elevation_m,water_kg_m2,liquid_kg_m2,ice_kg_m2");
+        if (FinalSurface?.WaterCycle is not null) csv.Append(",vapor_kg_m2,cloud_kg_m2,runoff_kg_m2");
+        if (FinalAtmosphere is not null) csv.Append(",n2_kg_m2,o2_kg_m2,co2_kg_m2,argon_kg_m2,co2_partial_pressure_pa");
         csv.Append('\n');
         foreach (var cell in grid.Cells.Take(FinalRegions.Count))
         {
@@ -25,6 +28,18 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
             {
                 var fields = new[] { surface.ElevationsMeters[cell.Index], surface.WaterMassPerSquareMeter[cell.Index],
                     surface.LiquidMassPerSquareMeter[cell.Index], surface.IceMassPerSquareMeter[cell.Index] };
+                csv.Append(',').AppendJoin(',', fields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
+                if (surface.WaterCycle is { } cycle)
+                {
+                    var cycleFields = new[] { cycle.VaporMassPerSquareMeter[cell.Index], cycle.CloudMassPerSquareMeter[cell.Index], cycle.RunoffMassPerSquareMeter[cell.Index] };
+                    csv.Append(',').AppendJoin(',', cycleFields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
+                }
+            }
+            if (FinalAtmosphere is { } atmosphere)
+            {
+                var fields = new[] { atmosphere.NitrogenMassPerSquareMeter[cell.Index], atmosphere.OxygenMassPerSquareMeter[cell.Index],
+                    atmosphere.CarbonDioxideMassPerSquareMeter[cell.Index], atmosphere.ArgonMassPerSquareMeter[cell.Index],
+                    atmosphere.CarbonDioxidePartialPressurePascals[cell.Index] };
                 csv.Append(',').AppendJoin(',', fields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             }
             csv.Append('\n');
@@ -37,6 +52,8 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
         var csv = new StringBuilder("day,temperature_K,equilibrium_K,absorbed_W_m2,emitted_W_m2,net_W_m2,absorbed_J_m2,emitted_J_m2,budget_error_J_m2");
         if (Scenario.Regional is not null) csv.Append(",minimum_K,maximum_K,north_mean_K,south_mean_K");
         if (Scenario.Surface is not null) csv.Append(",total_water_kg,liquid_mass_fraction,water_mass_error_kg");
+        if (Scenario.Hydrology is not null) csv.Append(",total_vapor_kg,total_cloud_kg,evaporation_kg,condensation_kg,precipitation_kg,runoff_kg,water_budget_error_kg");
+        if (Scenario.Atmosphere is not null) csv.Append(",total_dry_gas_kg,surface_pressure_pa,co2_partial_pressure_pa,co2_mole_fraction,dissolved_co2_kg,co2_uptake_kg,co2_release_kg,carbon_budget_error_kg,oxygen_budget_error_kg,nitrogen_budget_error_kg");
         csv.Append('\n');
         foreach (var sample in Samples)
         {
@@ -54,6 +71,21 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
             if (sample.Regional?.Surface is { } surface)
             {
                 var fields = new[] { surface.TotalWaterMassKilograms, surface.LiquidMassFraction, surface.WaterMassErrorKilograms };
+                csv.Append(',').AppendJoin(',', fields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
+                if (surface.WaterCycle is { } cycle)
+                {
+                    var cycleFields = new[] { cycle.TotalVaporMassKilograms, cycle.TotalCloudMassKilograms, cycle.CumulativeEvaporationKilograms,
+                        cycle.CumulativeCondensationKilograms, cycle.CumulativePrecipitationKilograms, cycle.CumulativeRunoffKilograms,
+                        cycle.WaterMassErrorKilograms };
+                    csv.Append(',').AppendJoin(',', cycleFields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
+                }
+            }
+            if (sample.Regional?.Atmosphere is { } atmosphere)
+            {
+                var fields = new[] { atmosphere.TotalAtmosphericMassKilograms, atmosphere.MeanSurfacePressurePascals, atmosphere.MeanCarbonDioxidePartialPressurePascals,
+                    atmosphere.MeanCarbonDioxideMoleFraction, atmosphere.TotalDissolvedCarbonDioxideMassKilograms,
+                    atmosphere.CumulativeCarbonDioxideUptakeKilograms, atmosphere.CumulativeCarbonDioxideReleaseKilograms,
+                    atmosphere.CarbonMassErrorKilograms, atmosphere.OxygenMassErrorKilograms, atmosphere.NitrogenMassErrorKilograms };
                 csv.Append(',').AppendJoin(',', fields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             }
             csv.Append('\n');

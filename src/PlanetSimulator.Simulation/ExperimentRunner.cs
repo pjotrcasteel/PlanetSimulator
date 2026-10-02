@@ -17,7 +17,7 @@ public sealed class ExperimentRunner
     {
         // Own a validated copy: edits in a host cannot alter an experiment that is already running.
         Scenario = ScenarioJson.Deserialize(ScenarioJson.Serialize(scenario));
-        session = new SimulationSession(Scenario.Climate, Scenario.Regional, Scenario.Surface);
+        session = new SimulationSession(Scenario.Climate, Scenario.Regional, Scenario.Surface, Scenario.Hydrology, Scenario.Atmosphere);
         session.Clock.Speed = SimulationClock.StepSeconds;
         Sample();
     }
@@ -53,6 +53,7 @@ public sealed class ExperimentRunner
         {
             FinalRegions = session.Regional?.TemperaturesKelvin.ToArray() ?? [],
             FinalSurface = session.Snapshot().Regional?.Surface,
+            FinalAtmosphere = session.Snapshot().Regional?.Atmosphere,
         };
     }
 
