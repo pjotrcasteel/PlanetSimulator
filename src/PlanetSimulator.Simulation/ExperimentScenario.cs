@@ -12,6 +12,7 @@ public sealed record ExperimentScenario
     public const string RegionalModelVersion = "regional-blackbody-rk4-60s-12x24-v1";
     public const string SurfaceModelVersion = "surface-enthalpy-rk4-60s-12x24-v1";
     public const string HydrologyModelVersion = "hydrology-rk4-60s-12x24-v1";
+    public const string BiologyModelVersion = "microbial-ch2o-rk4-60s-12x24-v1";
     public const string AtmosphereModelVersion = "atmosphere-chemistry-rk4-60s-12x24-v1";
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public SurfaceParameters? Surface { get; init; }
@@ -80,7 +81,7 @@ public sealed record ExperimentScenario
         var scenario = CreateRegional(name, durationDays, climate, regional, changes) with
         {
             Atmosphere = atmosphere,
-            ModelVersion = AtmosphereModelVersion,
+            ModelVersion = atmosphere.Biology is null ? AtmosphereModelVersion : BiologyModelVersion,
         };
         scenario.Validate();
         return scenario;
@@ -93,7 +94,7 @@ public sealed record ExperimentScenario
         var scenario = CreateSurface(name, durationDays, climate, regional, surface) with
         {
             Atmosphere = atmosphere,
-            ModelVersion = AtmosphereModelVersion,
+            ModelVersion = atmosphere.Biology is null ? AtmosphereModelVersion : BiologyModelVersion,
         };
         scenario.Validate();
         return scenario;
@@ -101,7 +102,7 @@ public sealed record ExperimentScenario
 
     public void Validate()
     {
-        var expectedVersion = Atmosphere is not null ? AtmosphereModelVersion :
+        var expectedVersion = Atmosphere?.Biology is not null ? BiologyModelVersion : Atmosphere is not null ? AtmosphereModelVersion :
             Hydrology is not null ? HydrologyModelVersion :
             Surface is not null ? SurfaceModelVersion : Regional is null ? CurrentModelVersion : RegionalModelVersion;
         if (FormatVersion != CurrentFormatVersion || ModelVersion != expectedVersion)
@@ -113,6 +114,7 @@ public sealed record ExperimentScenario
         if (DurationDays is < 1 or > 730) throw new ArgumentException("De duur moet 1–730 dagen zijn.");
         if (Climate is null) throw new ArgumentException("Beginwaarden ontbreken.");
         if (Changes is null || Changes.Length > 32) throw new ArgumentException("Maximaal 32 wijzigingen toegestaan.");
+        if (Atmosphere?.Biology is not null && Surface is null) throw new ArgumentException("Micro-organismen vereisen waterreservoirs.");
         Atmosphere?.ValidateRuntimeValues();
         var previousDay = 0;
         foreach (var change in Changes)

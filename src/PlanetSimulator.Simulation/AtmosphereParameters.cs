@@ -14,6 +14,8 @@ public sealed record AtmosphereParameters
     public const double CarbonMassFractionInCarbonDioxide = 12.011 / 44.0095;
     public const double OxygenMassFractionInCarbonDioxide = 31.998 / 44.0095;
 
+    [System.Text.Json.Serialization.JsonIgnore(Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public BiologyParameters? Biology { get; init; }
     public double SurfacePressurePascals { get; init; }
     public double NitrogenMoleFraction { get; init; }
     public double OxygenMoleFraction { get; init; }
@@ -57,6 +59,7 @@ public sealed record AtmosphereParameters
 
     internal void ValidateRuntimeValues()
     {
+        Biology?.Validate();
         if (!double.IsFinite(SurfacePressurePascals) || SurfacePressurePascals < 0 || SurfacePressurePascals > 2e7)
             throw new ArgumentOutOfRangeException(nameof(SurfacePressurePascals));
         if (new[] { NitrogenMoleFraction, OxygenMoleFraction, CarbonDioxideMoleFraction, ArgonMoleFraction }.Any(value => !double.IsFinite(value) || value < 0 || value > 1))

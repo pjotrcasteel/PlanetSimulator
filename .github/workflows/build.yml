@@ -82,7 +82,7 @@ jobs:
           python scripts/compare-experiment.py artifacts/browser/water-regions.csv artifacts/water-experiment/regions.csv
       - name: Replay hydrology and chemistry across browser and desktop
         run: |
-          for model in hydrology chemistry; do
+          for model in hydrology chemistry biology; do
             dotnet run --project src/PlanetSimulator.Desktop -c Release -- --experiment artifacts/browser/$model-scenario.json --output artifacts/$model-experiment
             python scripts/compare-experiment.py artifacts/browser/$model-results.csv artifacts/$model-experiment/results.csv
             python scripts/compare-experiment.py artifacts/browser/$model-regions.csv artifacts/$model-experiment/regions.csv

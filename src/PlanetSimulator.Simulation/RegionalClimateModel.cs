@@ -15,6 +15,7 @@ public sealed class RegionalClimateModel
     private readonly double initialEnthalpy;
     private readonly WaterCycleState? waterCycle;
     private readonly AtmosphereState? atmosphereState;
+    private readonly BiologyState? biology;
     public SurfaceReservoirs? Surface { get; }
     public WaterCycleParameters? WaterCycle { get; }
     public AtmosphereParameters? Atmosphere { get; }
@@ -52,6 +53,11 @@ public sealed class RegionalClimateModel
         enthalpies = temperatures.Select((t, i) => WaterThermodynamics.Enthalpy(t, Surface?.WaterMassPerSquareMeter[i] ?? 0, Climate.ArealHeatCapacity)).ToArray();
         Atmosphere = atmosphere;
         if (atmosphere is not null) atmosphereState = new AtmosphereState(Grid, atmosphere);
+        if (atmosphere?.Biology is { } life)
+        {
+            if (Surface is null) throw new ArgumentException("Biology requires water reservoirs.", nameof(surface));
+            biology = new BiologyState(Grid, life, atmosphereState!, Surface.WaterMassPerSquareMeter);
+        }
         initialEnthalpy = enthalpies.Average();
         stageTemperatures = new double[count];
         TemperaturesKelvin = Array.AsReadOnly(temperatures);
@@ -71,7 +77,7 @@ public sealed class RegionalClimateModel
     public double StoredEnergyChangeJoulesPerSquareMeter => Surface is null
         ? Climate.ArealHeatCapacity * (MeanTemperatureKelvin - initialMeanTemperature)
         : enthalpies.Average() - initialEnthalpy + (waterCycle?.AtmosphericEnergyJoulesPerSquareMeter ?? 0)
-            - (waterCycle?.InitialAtmosphericEnergyJoulesPerSquareMeter ?? 0);
+            - (waterCycle?.InitialAtmosphericEnergyJoulesPerSquareMeter ?? 0) + (biology?.EnergyChange ?? 0);
 
     public void SetForcing(double distanceAstronomicalUnits, double bondAlbedo, CancellationToken cancellationToken)
     {
@@ -133,6 +139,7 @@ public sealed class RegionalClimateModel
         // A minute is committed atomically; cancellation is checked before its first mutation.
         waterCycle?.Advance(seconds, Surface!.MutableWaterMassPerSquareMeter, enthalpies, Climate.ArealHeatCapacity, CancellationToken.None);
         atmosphereState?.Advance(seconds, Surface?.MutableWaterMassPerSquareMeter, enthalpies, Climate.ArealHeatCapacity, CancellationToken.None);
+        biology?.Advance(seconds, Surface!.MutableWaterMassPerSquareMeter, enthalpies, middleSunlight, Climate.ArealHeatCapacity, CancellationToken.None);
         if (Surface is not null)
             for (var index = 0; index < temperatures.Length; index++)
                 temperatures[index] = WaterThermodynamics.Temperature(enthalpies[index], Surface.WaterMassPerSquareMeter[index], Climate.ArealHeatCapacity);
@@ -146,11 +153,22 @@ public sealed class RegionalClimateModel
         var surface = Surface;
         var surfaceSnapshot = surface is null ? null : surface.Snapshot(enthalpies, surface.MutableWaterMassPerSquareMeter,
             waterCycle?.Snapshot(surface.MutableWaterMassPerSquareMeter));
+        if (surfaceSnapshot is not null && biology is not null)
+        {
+            var total = surfaceSnapshot.TotalWaterMassKilograms + biology.BoundWater;
+            var error = waterCycle is null
+                ? surfaceSnapshot.TotalWaterMassKilograms - surface!.TotalWaterMassKilograms + biology.BoundWaterChange
+                : surfaceSnapshot.WaterMassErrorKilograms + biology.BoundWaterChange;
+            surfaceSnapshot = surfaceSnapshot with { TotalWaterMassKilograms = total, WaterMassErrorKilograms = error,
+                BiologicallyBoundWaterEquivalentKilograms = biology.BoundWater,
+                WaterCycle = surfaceSnapshot.WaterCycle is { } cycle ? cycle with { WaterMassErrorKilograms = error } : null };
+        }
         return new RegionalSnapshot
         {
             TemperaturesKelvin = temperatures.ToArray(),
             Surface = surfaceSnapshot,
             Atmosphere = atmosphereState?.Snapshot(),
+            Biology = biology?.Snapshot(),
             MinimumTemperatureKelvin = temperatures.Min(),
             MaximumTemperatureKelvin = temperatures.Max(),
             NorthMeanTemperatureKelvin = temperatures.Take(temperatures.Length / 2).Average(),

@@ -17,6 +17,8 @@ for first, second in zip(browser, desktop):
             absolute_tolerance = max(1, float(first["total_water_kg"])) * 1e-12
         if column in ("carbon_budget_error_kg", "oxygen_budget_error_kg", "nitrogen_budget_error_kg"):
             absolute_tolerance = max(1, float(first["total_dry_gas_kg"])) * 1e-12
+        if column == "phosphorus_budget_error_kg":
+            absolute_tolerance = max(1, float(browser[0]["available_phosphorus_kg"]) + float(browser[0]["biomass_kg"])) * 1e-12
         if column.endswith("error_kg") and max(abs(a), abs(b)) > absolute_tolerance:
             raise SystemExit(f"Conservation tolerance exceeded: {column}: {a}, {b}")
         if not math.isfinite(a) or not math.isfinite(b) or not math.isclose(a, b, rel_tol=1e-10, abs_tol=absolute_tolerance):

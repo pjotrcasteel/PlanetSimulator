@@ -54,6 +54,7 @@ public sealed class ExperimentRunner
             FinalRegions = session.Regional?.TemperaturesKelvin.ToArray() ?? [],
             FinalSurface = session.Snapshot().Regional?.Surface,
             FinalAtmosphere = session.Snapshot().Regional?.Atmosphere,
+            FinalBiology = session.Snapshot().Regional?.Biology,
         };
     }
 

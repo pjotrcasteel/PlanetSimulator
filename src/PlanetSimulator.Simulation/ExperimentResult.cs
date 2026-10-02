@@ -9,6 +9,7 @@ namespace PlanetSimulator.Simulation;
 public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList<ExperimentSample> Samples)
 {
     public SurfaceSnapshot? FinalSurface { get; init; }
+    public BiologySnapshot? FinalBiology { get; init; }
     public AtmosphereSnapshot? FinalAtmosphere { get; init; }
     public IReadOnlyList<double> FinalRegions { get; init; } = [];
     public string ToRegionalCsv()
@@ -18,6 +19,7 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
         if (FinalSurface is not null) csv.Append(",elevation_m,water_kg_m2,liquid_kg_m2,ice_kg_m2");
         if (FinalSurface?.WaterCycle is not null) csv.Append(",vapor_kg_m2,cloud_kg_m2,runoff_kg_m2");
         if (FinalAtmosphere is not null) csv.Append(",n2_kg_m2,o2_kg_m2,co2_kg_m2,argon_kg_m2,co2_partial_pressure_pa");
+        if (FinalBiology is not null) csv.Append(",biomass_kg_m2,available_phosphorus_kg_m2");
         csv.Append('\n');
         foreach (var cell in grid.Cells.Take(FinalRegions.Count))
         {
@@ -42,6 +44,9 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
                     atmosphere.CarbonDioxidePartialPressurePascals[cell.Index] };
                 csv.Append(',').AppendJoin(',', fields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             }
+            if (FinalBiology is { } life)
+                csv.Append(',').AppendJoin(',', new[] { life.BiomassKilogramsPerSquareMeter[cell.Index],
+                    life.AvailablePhosphorusKilogramsPerSquareMeter[cell.Index] }.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             csv.Append('\n');
         }
         return csv.ToString();
@@ -54,6 +59,8 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
         if (Scenario.Surface is not null) csv.Append(",total_water_kg,liquid_mass_fraction,water_mass_error_kg");
         if (Scenario.Hydrology is not null) csv.Append(",total_vapor_kg,total_cloud_kg,evaporation_kg,condensation_kg,precipitation_kg,runoff_kg,water_budget_error_kg");
         if (Scenario.Atmosphere is not null) csv.Append(",total_dry_gas_kg,surface_pressure_pa,co2_partial_pressure_pa,co2_mole_fraction,dissolved_co2_kg,co2_uptake_kg,co2_release_kg,carbon_budget_error_kg,oxygen_budget_error_kg,nitrogen_budget_error_kg");
+        if (Scenario.Atmosphere?.Biology is not null)
+            csv.Append(",biomass_kg,available_phosphorus_kg,phosphorus_budget_error_kg,biomass_production_kg,biomass_respiration_kg,chemical_energy_J_m2,bound_water_kg");
         csv.Append('\n');
         foreach (var sample in Samples)
         {
@@ -88,6 +95,10 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
                     atmosphere.CarbonMassErrorKilograms, atmosphere.OxygenMassErrorKilograms, atmosphere.NitrogenMassErrorKilograms };
                 csv.Append(',').AppendJoin(',', fields.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             }
+            if (sample.Regional?.Biology is { } life)
+                csv.Append(',').AppendJoin(',', new[] { life.TotalBiomassKilograms, life.TotalAvailablePhosphorusKilograms,
+                    life.PhosphorusBudgetErrorKilograms, life.CumulativeProductionKilograms, life.CumulativeRespirationKilograms,
+                    life.ChemicalEnergyJoulesPerSquareMeter, life.BoundWaterEquivalentKilograms }.Select(v => v.ToString("R", CultureInfo.InvariantCulture)));
             csv.Append('\n');
         }
 

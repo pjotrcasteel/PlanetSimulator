@@ -254,11 +254,16 @@ try {
     await page.selectOption('#climate-model', 'regional');
     await page.locator('#temperature-map').check();
     // Both new models must replay through JSON and export every budget column.
-    for (const [choice, identity] of [['hydrology', 'hydrology-rk4-60s-12x24-v1'], ['chemistry', 'atmosphere-chemistry-rk4-60s-12x24-v1']]) {
+    for (const [choice, identity] of [['hydrology', 'hydrology-rk4-60s-12x24-v1'], ['chemistry', 'atmosphere-chemistry-rk4-60s-12x24-v1'], ['biology', 'microbial-ch2o-rk4-60s-12x24-v1']]) {
         await page.selectOption('#climate-model', choice);
         await page.waitForFunction(() => document.querySelector('#water-cycle-summary') !== null);
         if (choice === 'chemistry') {
             assert.ok(Math.abs(Number(await page.locator('#atmosphere-summary').getAttribute('data-co2-pressure')) - 40.53) < 1e-6);
+        }
+        if (choice === 'biology') {
+            await page.locator('#biology-summary').waitFor();
+            await page.locator('#warm-start').click();
+            assert.ok(Number(await page.locator('#biology-summary').getAttribute('data-biomass')) > 0);
         }
         await page.selectOption('#experiment-model', choice);
         await page.locator('#experiment-days').fill('2');
@@ -278,6 +283,15 @@ try {
             assert.ok(csv.includes('carbon_budget_error_kg'));
             assert.ok(regions.includes('co2_partial_pressure_pa'));
             await page.screenshot({ path: 'artifacts/browser/chemistry.png', fullPage: true });
+        }
+        if (choice === 'biology') {
+            assert.ok(csv.includes('phosphorus_budget_error_kg'));
+            assert.ok(regions.includes('biomass_kg_m2'));
+            await page.locator('#experiment-biology-summary').waitFor();
+            const rows = csv.trim().split('\n').map(line => line.split(','));
+            const biomassColumn = rows[0].indexOf('biomass_kg');
+            assert.ok(Number(rows.at(-1)[biomassColumn]) > Number(rows[1][biomassColumn]));
+            await page.screenshot({ path: 'artifacts/browser/biology.png', fullPage: true });
         }
         await page.locator('#import-scenario').setInputFiles({ name: choice + '.json', mimeType: 'application/json', buffer: Buffer.from(json) });
         await page.waitForFunction(expected => document.querySelector('#experiment-model').value === expected, choice);
