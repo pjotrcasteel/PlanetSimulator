@@ -3,13 +3,13 @@
 @inject IJSRuntime JS
 
 <section class="experiment-panel" aria-label="Reproduceerbare experimenten">
-    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 8 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
+    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 9 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
         <p>Elke run begint opnieuw. Vergelijk temperatuurcurves en bewaar alle beginwaarden en geplande wijzigingen in een scenario.</p></div>
     <div class="experiment-layout">
         <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
             <fieldset disabled="@busy">
                 <label for="experiment-model">Model voor dit experiment</label>
-                <select id="experiment-model" value="@(chemistry is not null ? "chemistry" : hydrology is not null ? "hydrology" : surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option><option value="hydrology">Waterkringloop</option><option value="chemistry">Atmosfeer en CO₂</option></select>
+                <select id="experiment-model" value="@(chemistry?.Biology is not null ? "biology" : chemistry is not null ? "chemistry" : hydrology is not null ? "hydrology" : surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option><option value="hydrology">Waterkringloop</option><option value="chemistry">Atmosfeer en CO₂</option><option value="biology">Eerste leven · micro-organismen</option></select>
                 @if (regionalModel)
                 {
                     <div class="parameter-grid">
@@ -35,6 +35,14 @@
                         <div><label for="gas-outgassing">Uitgassing (kg/m²/jaar)</label><input id="gas-outgassing" type="number" min="0" max="1000000" step="any" required @bind="outgassing" /></div>
                     </div>
                     <p class="field-hint">CO₂ lost op in vloeibaar water en komt vrij bij drogen of bevriezen. De korstvoorraad is eindig. Nog geen broeikaseffect.</p>
+                }
+                @if (chemistry?.Biology is not null)
+                {
+                    <label for="bio-seed">Beginbiomassa (kg CH₂O/m², natte cellen)</label>
+                    <input id="bio-seed" type="number" min="0" max="1" step="any" required @bind="inoculum" />
+                    <label for="bio-phosphorus">Totale fosforvoorraad (kg P/m²)</label>
+                    <input id="bio-phosphorus" type="number" min="0" max="1" step="any" required @bind="phosphorus" />
+                    <p class="field-hint">Een ingebracht inoculum, geen spontaan ontstaan van leven. Groei vraagt licht, vloeibaar water, CO₂ en fosfor; ademhaling vraagt zuurstof. Koude en droge cellen zijn slapend.</p>
                 }
                 <label for="scenario-name">Scenarionaam</label><input id="scenario-name" required maxlength="80" @bind="name" />
                 <div class="parameter-grid">
@@ -96,6 +104,10 @@
                 {
                     <p id="experiment-water-summary" data-liquid-fraction="@F(water.LiquidMassFraction, "R")">Vloeibaar: @F(water.LiquidMassFraction * 100)% · watermassa: @F(water.TotalWaterMassKilograms, "G4") kg · afwijking: @F(water.WaterMassErrorKilograms, "G3") kg</p>
                 }
+                @if (Selected.Regional?.Biology is { } life)
+                {
+                    <p id="experiment-biology-summary">Biomassa: @F(life.TotalBiomassKilograms, "G4") kg CH₂O · vrij fosfor: @F(life.TotalAvailablePhosphorusKilograms, "G4") kg P · fosforafwijking: @F(life.PhosphorusBudgetErrorKilograms, "G3") kg</p>
+                }
                 @if (Selected.Regional?.Atmosphere is { } gas)
                 {
                     <p id="experiment-atmosphere-summary">Droge druk: @F(gas.MeanSurfacePressurePascals) Pa · CO₂: @F(gas.MeanCarbonDioxideMoleFraction * 1e6) ppm · koolstofafwijking: @F(gas.CarbonMassErrorKilograms, "G3") kg</p>
@@ -128,6 +140,7 @@
     private bool regionalModel, surfaceModel;
     private WaterCycleParameters? hydrology;
     private AtmosphereParameters? chemistry;
+    private double inoculum = 0.001, phosphorus = 0.0001;
     private double pressure = 101325, co2Ppm = 400, outgassing;
     private double relief = 10, waterDepth = 3;
     private double tilt = 23.44, diffusion = 0.6, yearDays = 365.25;
@@ -183,8 +196,10 @@
             var atmosphere = chemistry with { SurfacePressurePascals = pressure, CarbonDioxideMoleFraction = fraction,
                 NitrogenMoleFraction = fraction == chemistry.CarbonDioxideMoleFraction ? chemistry.NitrogenMoleFraction
                     : chemistry.NitrogenMoleFraction + chemistry.CarbonDioxideMoleFraction - fraction,
-                Co2OutgassingKilogramsPerSquareMeterPerYear = outgassing };
-            scenario = scenario with { Atmosphere = atmosphere, ModelVersion = ExperimentScenario.AtmosphereModelVersion };
+                Co2OutgassingKilogramsPerSquareMeterPerYear = outgassing,
+                Biology = chemistry.Biology is { } life ? life with { InitialBiomassKilogramsPerSquareMeter = inoculum,
+                    TotalPhosphorusKilogramsPerSquareMeter = phosphorus } : null };
+            scenario = scenario with { Atmosphere = atmosphere, ModelVersion = atmosphere.Biology is null ? ExperimentScenario.AtmosphereModelVersion : ExperimentScenario.BiologyModelVersion };
         }
         scenario.Validate();
         return scenario;
@@ -193,9 +208,11 @@
     private void SelectExperimentModel(ChangeEventArgs args)
     {
         var choice = args.Value?.ToString();
-        chemistry = choice == "chemistry" ? new AtmosphereParameters() : null;
-        hydrology = choice is "hydrology" or "chemistry" ? new WaterCycleParameters() : null;
-        surfaceModel = choice is "surface" or "hydrology" or "chemistry";
+        chemistry = choice is "chemistry" or "biology" ? new AtmosphereParameters()
+            { Biology = choice == "biology" ? new BiologyParameters() : null } : null;
+        inoculum = 0.001; phosphorus = 0.0001;
+        hydrology = choice is "hydrology" or "chemistry" or "biology" ? new WaterCycleParameters() : null;
+        surfaceModel = choice is "surface" or "hydrology" or "chemistry" or "biology";
         regionalModel = surfaceModel || choice == "regional";
         if (hydrology is not null) { days = 30; initialTemperature = 285; }
         pressure = 101325; co2Ppm = 400; outgassing = 0;
@@ -283,6 +300,8 @@
         {
             pressure = chemistry.SurfacePressurePascals; co2Ppm = chemistry.CarbonDioxideMoleFraction * 1e6;
             outgassing = chemistry.Co2OutgassingKilogramsPerSquareMeterPerYear;
+            if (chemistry.Biology is { } life)
+            { inoculum = life.InitialBiomassKilogramsPerSquareMeter; phosphorus = life.TotalPhosphorusKilogramsPerSquareMeter; }
         }
         if (scenario.Surface is { } surface) { relief = surface.ReliefMeters; waterDepth = surface.WaterEquivalentDepthMeters; }
         if (scenario.Regional is { } regional)

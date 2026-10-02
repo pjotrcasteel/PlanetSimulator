@@ -6,6 +6,7 @@
 public sealed record RegionalSnapshot
 {
     public SurfaceSnapshot? Surface { get; init; }
+    public BiologySnapshot? Biology { get; init; }
     public AtmosphereSnapshot? Atmosphere { get; init; }
     public required IReadOnlyList<double> TemperaturesKelvin { get; init; }
     public required double MinimumTemperatureKelvin { get; init; }

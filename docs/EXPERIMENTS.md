@@ -52,3 +52,16 @@ Kies `Land, water en ijs`. De JSON bevat `surface.reliefMeters` en `surface.wate
 `examples/hydrology.json` gebruikt modelidentiteit `hydrology-rk4-60s-12x24-v1`. De JSON voegt tijdschalen voor damp, wolken, neerslag en afvoer toe. De dagelijkse CSV bevat totale damp- en wolkenmassa, cumulatieve fluxen en de waterbudgetafwijking; de regionale CSV voegt die velden per cel toe.
 
 `examples/atmosphere-chemistry.json` gebruikt `atmosphere-chemistry-rk4-60s-12x24-v1`. De atmosfeer specificeert totale druk en molfracties voor N₂, O₂, CO₂ en Ar plus de eindige korstvoorraad. De CSV exporteert droge oppervlaktedruk, CO₂-partiële druk, opgeloste CO₂ en C/O/N-budgetfouten. De atmosfeer kan zelfstandig op een regionaal model worden gezet; voeg `surface` toe voor CO₂-opname in vloeibaar water en optioneel `hydrology` voor de waterkringloop. De optische gloed is niet aan deze gasvoorraad gekoppeld.
+
+
+## Eerste leven (milestone 9)
+
+Kies **Eerste leven · micro-organismen**, begin op 285 K en probeer eerst 2–30 dagen. Beginbiomassa en totale fosforvoorraad zijn instelbaar. De daginspectie toont biomassa en beschikbaar fosfor; CSV bevat productie, ademhaling, chemische energie, gebonden-water-equivalent en de P-balans. De regiokaart bevat biomassa en beschikbaar P per cel. Begin met nul inoculum om te controleren dat leven niet spontaan ontstaat, of kies sterhelderheid nul om ademhaling zonder fotosynthese te onderzoeken.
+
+Het scenario [first-life.json](../examples/first-life.json) koppelt hydrologie, chemie en biologie. Modelidentiteit: `microbial-ch2o-rk4-60s-12x24-v1`; parameters staan onder `atmosphere.biology`. Oudere modellen houden hun eigen identiteit. Een scenario met biologie maar zonder oppervlaktewatermodel wordt afgewezen.
+
+Desktop: **I** wisselt de levenslaag en herstart; **P** kiest de warme start. **G** rekent het experiment, **S** bewaart de resultaten. Via de CLI:
+
+```sh
+dotnet run --project src/PlanetSimulator.Desktop -- --experiment examples/first-life.json --output experiments/first-life
+```

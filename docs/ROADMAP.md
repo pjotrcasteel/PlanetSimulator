@@ -64,7 +64,7 @@ Vocht, condensatie, neerslag, afvoer en benaderde circulatie.
 
 Acceptatie: Waterbudget sluit en convergentie bij kleinere tijdstappen is onderzocht.
 
-Status: geïmplementeerd in beide hosts; lokale water-/energiebalans-, reset-, replay- en 60/30/15-s-convergentietests geslaagd. GitHub-acceptatie volgt bij publicatie.
+Status: voltooid. Water-/energiebalans, reset, replay, 60/30/15-s-convergentie en GitHub-browser/desktop-acceptatie geslaagd; gepubliceerd.
 
 ## 8. Atmosfeer en chemie
 
@@ -72,7 +72,7 @@ Gasreservoirs, partiële drukken en geselecteerde reacties.
 
 Acceptatie: Elementbalansen sluiten en voorraden worden nooit negatief.
 
-Status: geïmplementeerd in kern, desktop en browser, met scenario’s en CSV. Lokale druk-, balans-, oplossings-, uitgassings-, vacuüm- en replaytests geslaagd. GitHub-acceptatie volgt bij publicatie.
+Status: voltooid. Druk-, balans-, oplossings-, uitgassings-, vacuüm- en replaytests en GitHub-browser/desktop-acceptatie geslaagd; gepubliceerd.
 
 ## 9. Eerste leven
 
@@ -80,7 +80,9 @@ Micro-organismen, fotosynthese, ademhaling en nutriënten.
 
 Acceptatie: Groei is begrensd door beschikbare energie en grondstoffen.
 
-Status: Gepland.
+Status: geïmplementeerd. Eén geïnoculeerde microbenpool met CH₂O-equivalent, lichtbegrensde fotosynthese, zuurstofbegrensde ademhaling en eindige fosforquota. Water en chemische energie tellen mee in de balansen. Beide hosts, JSON/CSV, 69 lokale tests inclusief negen biologische tests; GitHub-publicatieacceptatie volgt. Geen abiogenese, ecosysteem of gekalibreerde bewoonbaarheidsvoorspelling.
+
+Open fysica vóór bewoonbaarheidsclaims: broeikaseffect, drukafhankelijke waterfasen en uitgebreidere oceaanchemie. Deze zijn geen onderdeel van het eenvoudige levensmodel.
 
 ## 10. Terraforming
 

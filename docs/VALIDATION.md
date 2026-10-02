@@ -84,3 +84,10 @@ Lokale verificatie: 60 C#-tests, twee browsergeometriechecks, Release-build van 
 De tijdelijke Linux-omgeving vereist een lokale SDK-cache-aanpassing om WebAssembly/ILLink-taken in hetzelfde proces te draaien (TaskHostFactory kan hier geen socket openen). Deze aanpassing zit niet in de repository. De ongewijzigde SDK, Chromium en hostvergelijking worden in GitHub Actions gecontroleerd.
 
 Bevestigd op 2 oktober 2026: [PR-workflow 36973895257](https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36973895257) en [main-workflow 36974855939](https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/36974855939) zijn geslaagd. De standaard Windows-build, C#-tests, getrimde Blazor-publicatie, Chromium-acceptatie en browser/desktop-replay van hydrologie en chemie zijn hiermee gecontroleerd. De main-workflow publiceerde commit `51f694e21905b997a914195401d5dba065ad54bf` naar Pages. Handmatige native Windows-bediening en wetenschappelijke kalibratie blijven open.
+
+
+## Milestone 9 — micro-organismen
+
+69 lokale C#-tests geslaagd, inclusief negen nieuwe tests: gekoppelde stof- en energiebalansen met/zonder hydrologie; donkerrespiratie; zuurstofgebrek; ontbreken van CO₂, P of inoculum; koude/hete/droge habitats; lichtenergie- en nutriëntenbegrenzing; JSON/CSV-replay; 60/30/15-s-convergentie; validatie, annuleren en reset. Massa gebruikt relatieve tolerantie 1e-12 van de betrokken voorraad, energie 0,02 J/m². Het verschil in biomassa tussen 60 en 15 s blijft binnen 0,2% in de vastgelegde eendaagse proef; dit is geen algemene foutgrens.
+
+Browseracceptatie en desktop-replay zijn uitgebreid met een biologisch scenario, dagelijkse biologische kolommen en alle 288 eindcellen. GitHub-acceptatie wordt vóór samenvoegen uitgevoerd. Groei-/ademhalingssnelheden en grenzen zijn illustratief en nog niet tegen echte microbiële datasets gevalideerd.

@@ -135,3 +135,18 @@ De eindige korstvoorraad bevat CO₂-equivalente massa; uitgassing is een voorge
 Bronnen: [NASA: hydrostatische luchtdruk](https://www.grc.nasa.gov/www/k-12/airplane/atmosphere.html), [NOAA: definitie CO₂-partiële druk](https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/Handbook_2007/sop05.pdf), [Sander: Henry-constanten voor CO₂, versie 5](https://henrys-law.org/henry/casrn/124-38-9).
 
 De warme start is geen garantie op langdurig vloeibaar water of bewoonbaarheid. Met de referentie-instraling en zonder broeikaseffect kan deze wereld weer bevriezen.
+
+
+## Milestone 9 — één microbieel compartiment
+
+De biologische toestand is een CH₂O-equivalent per cel, plus een afzonderlijke fosforquota. De nettoreactie is CO₂ + H₂O + licht → CH₂O + O₂; aerobe ademhaling keert deze reactie om. Zie [OpenStax Biology 2e, fotosynthese](https://openstax.org/books/biology-2e/pages/8-1-overview-of-photosynthesis) en [koolstoffixatie en ademhaling](https://openstax.org/books/biology-2e/pages/8-3-using-light-energy-to-make-organic-molecules) voor het biologische principe. De onderstaande parameters zijn expliciete modelkeuzes, geen soortspecifieke kalibratie.
+
+- Inoculum: standaard 0,001 kg CH₂O/m² in cellen met initieel water, ook als dit ijs is. Het is een expliciet toegevoegde beginvoorraad, met eigen koolstof, gebonden water en chemische energie. Geen spontane vorming van leven. De zaadhoeveelheid wordt begrensd door de totale fosforquota.
+- Fosfor: standaard 0,0001 kg P/m²; 0,030974/106 kg P per mol CH₂O als vaste, illustratieve quota. Vrij en gebonden P blijven samen constant. P is een nutriëntentracer; fosfaatreacties, stikstofassimilatie en zuur-basechemie worden niet voorgesteld.
+- Activiteit: driehoek tussen 273,15 en 313,15 K met optimum 293,15 K, uitsluitend bij vloeibaar water. Buiten dit bereik blijft biomassa slapend; er is nog geen sterfte, detritus, verspreiding of evolutie. Dit is dus geen universele temperatuurgrens voor leven.
+- Groei: maximaal 1/dag maal activiteit. De feitelijke stap is het minimum van deze potentiële groei, beschikbare opgeloste CO₂, vloeibaar water, vrij P, maximaal 2% van lokaal geabsorbeerde lichtenergie en beschikbaar positief oppervlakte-enthalpie. CO₂ komt via het bestaande gas-water-uitwisselingsmodel binnen.
+- Ademhaling: maximaal 0,03/dag maal activiteit, exact exponentieel begrensd en beperkt tot beschikbare O₂. O₂ wordt rechtstreeks uit de lokale gaskolom genomen; zuurstofoplossing en diffusie in water zijn nog niet gemodelleerd. Ademhaling recycleert P en water en geeft CO₂ terug aan het opgeloste reservoir.
+- Energie: 467 kJ/mol CH₂O is een vaste effectieve opslagwaarde. Fotosynthese trekt deze energie af van het reeds opgewarmde oppervlak; ademhaling geeft die terug. Het totale budget bevat thermische, atmosferische water- en chemische energie. Er komt geen extra energie bij de lichtbron. Biomassa heeft nog geen eigen voelbare warmtecapaciteit.
+- Water: één mol water wordt per mol gevormd CH₂O gebonden. De totale waterdiagnostiek telt het **water-equivalent in biomassa** mee; dit is geen vloeibaar water. Waterstofbehoud volgt deze equivalente waterbalans. Het droge C-budget bevat de verandering van de werkelijk opgeslagen biologische koolstof. O in water en CH₂O valt paarsgewijs weg, zodat het bestaande CO₂/O₂-zuurstofbudget blijft sluiten. N₂ is inert.
+
+De biologie verandert de gasvoorraden en chemische energie, maar nog niet albedo, broeikasopaciteit of de visuele terreinkleuren. Geen bomen, dieren of ecosystemen; geen bewijs dat de wereld duurzaam bewoonbaar is. Het model blijft een transparant, numeriek controleerbaar eerste compartiment.

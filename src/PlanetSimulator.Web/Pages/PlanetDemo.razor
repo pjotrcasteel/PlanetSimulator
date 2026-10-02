@@ -6,7 +6,7 @@
 <div class="shell">
     <header>
         <a class="brand" href="./"><span class="brand-mark">◉</span> PlanetSimulator</a>
-        <span class="milestone">MILESTONE 8 <span>·</span> BROWSERDEMO</span>
+        <span class="milestone">MILESTONE 9 <span>·</span> BROWSERDEMO</span>
     </header>
     <main>
         <div class="world-column">
@@ -34,8 +34,8 @@
             <h2>Van evenaar tot pool.</h2>
             <p class="intro">Verander de afstand tot de ster of de reflectie en ontdek hoe de planeet naar een nieuw temperatuurevenwicht beweegt.</p>
             <label for="climate-model">Klimaatmodel (wisselen herstart de tijd)</label>
-            <select id="climate-model" value="@(session.Regional is null ? "global" : session.Regional.Atmosphere is not null ? "chemistry" : session.Regional.WaterCycle is not null ? "hydrology" : session.Regional.Surface is null ? "regional" : "surface")" @onchange="SelectModel" disabled="@(!ready)">
-                <option value="chemistry">Atmosfeer en CO₂</option><option value="hydrology">Waterkringloop</option><option value="surface">Land, water en ijs · planeetweergave</option><option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
+            <select id="climate-model" value="@(session.Regional is null ? "global" : session.Regional.Atmosphere?.Biology is not null ? "biology" : session.Regional.Atmosphere is not null ? "chemistry" : session.Regional.WaterCycle is not null ? "hydrology" : session.Regional.Surface is null ? "regional" : "surface")" @onchange="SelectModel" disabled="@(!ready)">
+                <option value="biology">Eerste leven · micro-organismen</option><option value="chemistry">Atmosfeer en CO₂</option><option value="hydrology">Waterkringloop</option><option value="surface">Land, water en ijs · planeetweergave</option><option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
             </select>
             <div class="temperature-card"><span>GEMIDDELDE MODELTEMPERATUUR</span>
                 <strong id="temperature" data-kelvin="@F(snapshot.TemperatureKelvin, "F6")">@F(snapshot.TemperatureKelvin - 273.15) <small>°C</small></strong>
@@ -86,6 +86,16 @@
                     <div><span>Koolstofbalansafwijking</span><strong>@F(gas.CarbonMassErrorKilograms, "G3") kg</strong></div>
                 </div>
             }
+            @if (snapshot.Regional?.Biology is { } life)
+            {
+                <div class="regional-summary" id="biology-summary" data-biomass="@F(life.TotalBiomassKilograms, "R")">
+                    <div><span>Microbiële biomassa (CH₂O)</span><strong>@F(life.TotalBiomassKilograms, "G4") kg</strong></div>
+                    <div><span>Vrij fosfor</span><strong>@F(life.TotalAvailablePhosphorusKilograms, "G4") kg P</strong></div>
+                    <div><span>Productie / ademhaling</span><strong>@F(life.CumulativeProductionKilograms, "G4") / @F(life.CumulativeRespirationKilograms, "G4") kg</strong></div>
+                    <div><span>Chemische energie</span><strong>@F(life.ChemicalEnergyJoulesPerSquareMeter, "G4") J/m²</strong></div>
+                    <p>Kies de waterwereld van 285 K om groei te onderzoeken. In ijs blijft het inoculum slapend. Geen voorspelling van bewoonbaarheid.</p>
+                </div>
+            }
             <div class="time-card"><span>VERSTREKEN SIMULATIETIJD</span><strong id="elapsed-days">@((session.Clock.ElapsedSeconds / 86400).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)) <small>dagen</small></strong></div>
             <div class="controls">
                 <button id="pause" @onclick="TogglePause" disabled="@(!ready)">@(session.Clock.IsPaused ? "▶ Hervatten" : "Ⅱ Pauzeren")</button>
@@ -121,7 +131,7 @@
         </aside>
         <ExperimentPanel />
     </main>
-    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 8</span></footer>
+    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 9</span></footer>
 </div>
 
 @code {
@@ -209,10 +219,11 @@
     private async Task SelectModel(ChangeEventArgs args)
     {
         var choice = args.Value?.ToString();
-        session.SelectModel(choice is "regional" or "surface" or "hydrology" or "chemistry" ? new RegionalParameters() : null, lifetime.Token);
-        if (choice is "surface" or "hydrology" or "chemistry") session.SelectSurface(new SurfaceParameters(), lifetime.Token);
-        if (choice is "hydrology" or "chemistry") session.SelectWaterCycle(new WaterCycleParameters(), lifetime.Token);
-        if (choice == "chemistry") session.SelectAtmosphere(new AtmosphereParameters(), lifetime.Token);
+        session.SelectModel(choice is "regional" or "surface" or "hydrology" or "chemistry" or "biology" ? new RegionalParameters() : null, lifetime.Token);
+        if (choice is "surface" or "hydrology" or "chemistry" or "biology") session.SelectSurface(new SurfaceParameters(), lifetime.Token);
+        if (choice is "hydrology" or "chemistry" or "biology") session.SelectWaterCycle(new WaterCycleParameters(), lifetime.Token);
+        if (choice is "chemistry" or "biology") session.SelectAtmosphere(new AtmosphereParameters()
+            { Biology = choice == "biology" ? new BiologyParameters() : null }, lifetime.Token);
         temperatureMap = choice == "regional";
         if (module is not null)
         {
