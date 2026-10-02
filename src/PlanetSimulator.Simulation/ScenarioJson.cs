@@ -46,6 +46,20 @@ public static class ScenarioJson
                 if (!surface.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
                     throw new ArgumentException($"Oppervlakte-instelling {name} ontbreekt of is geen getal.");
         }
+        if (document.RootElement.TryGetProperty("hydrology", out var hydrology) && hydrology.ValueKind != JsonValueKind.Null)
+        {
+            if (hydrology.ValueKind != JsonValueKind.Object) throw new ArgumentException("Hydrologische instellingen zijn ongeldig.");
+            foreach (var name in new[] { "initialVaporEquivalentDepthMeters", "initialCloudEquivalentDepthMeters", "evaporationTimescaleHours", "condensationTimescaleHours", "precipitationTimescaleHours", "runoffTimescaleHours" })
+                if (!hydrology.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
+                    throw new ArgumentException($"Hydrologische instelling {name} ontbreekt of is geen getal.");
+        }
+        if (document.RootElement.TryGetProperty("atmosphere", out var atmosphere) && atmosphere.ValueKind != JsonValueKind.Null)
+        {
+            if (atmosphere.ValueKind != JsonValueKind.Object) throw new ArgumentException("Atmosfeerinstellingen zijn ongeldig.");
+            foreach (var name in new[] { "surfacePressurePascals", "nitrogenMoleFraction", "oxygenMoleFraction", "carbonDioxideMoleFraction", "argonMoleFraction", "crustalCarbonDioxideMassPerSquareMeter" })
+                if (!atmosphere.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
+                    throw new ArgumentException($"Atmosfeerinstelling {name} ontbreekt of is geen getal.");
+        }
         var scenario = JsonSerializer.Deserialize(json, Context.ExperimentScenario) ?? throw new ArgumentException("Scenario ontbreekt.");
         scenario.Validate();
         return scenario;

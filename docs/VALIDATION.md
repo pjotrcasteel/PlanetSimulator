@@ -76,3 +76,9 @@ Gecontroleerd op commit `ce155806954d9a0c98f30c38addfb60e60bfd6f7`, [workflow 36
 - Windows Release-build en self-contained desktoppublicatie; getrimde Blazor-publicatie; twee JS-geometriechecks; Chromium-bediening, JSON-replay en responsive layout.
 - Browserexport herhaald door dezelfde C#-kern via de desktophost: dagelijkse waterdiagnostiek én temperatuur/hoogte/water/liquid/ice van alle 288 eindcellen vergeleken met relatieve tolerantie 1e-10, absolute 1e-8 (energieresidu 0,02 J/m²).
 - Native oppervlaktescreenshot, browseroppervlakte en mobiele preview visueel gecontroleerd. Dit valideert implementatie en numerieke afspraken; wetenschappelijke validatie tegen echte oceanen of planetaire waarnemingen is nog niet uitgevoerd.
+
+## Milestones 7–8 — hydrologie, atmosfeer en chemie
+
+Lokale verificatie: 60 C#-tests, twee browsergeometriechecks, Release-build van alle projecten en getrimde Blazor-publicatie geslaagd. Water/energie, 60/30/15-s-convergentie, druk uit molfracties, C/O/N-balansen, vacuüm, eindige uitgassing, oplossen/vrijgave, reset, annuleren en JSON/CSV-replay worden getest. Massaresiduen gebruiken 1e-12 van de voorraad; energie 0,02 J/m². Dit is numerieke validatie, geen kalibratie tegen een echte planeet.
+
+De tijdelijke Linux-omgeving vereist een lokale SDK-cache-aanpassing om WebAssembly/ILLink-taken in hetzelfde proces te draaien (TaskHostFactory kan hier geen socket openen). Deze aanpassing zit niet in de repository. De ongewijzigde SDK, Chromium en hostvergelijking worden in GitHub Actions gecontroleerd.

@@ -46,3 +46,9 @@ Desktop C wisselt model en herstart de tijd; T kiest kaart/gewoon oppervlak; O/K
 Kies `Land, water en ijs`. De JSON bevat `surface.reliefMeters` en `surface.waterEquivalentDepthMeters` en modelversie `surface-enthalpy-rk4-60s-12x24-v1`. CSV voegt totale watermassa, vloeibare massafractie en massa-afwijking toe. De regionale eindkaart bevat ook hoogte, totale watermassa, vloeibare massa en ijsmassa per m². Oude globale en regionale exports houden hun modelidentiteit en kolommen.
 
 `examples/shallow-melting.json` begint op het smeltpunt met een vlakke wereld en 1 cm water. Bij deze temperatuur is de beginfase ijs; sterke instraling smelt het overdag. Herhaal met luminositeit 0 en begintemperatuur 273,16 K om bevriezen te onderzoeken. Dit is een faseproef bij voorgeschreven druk, geen echte klimaatvoorspelling.
+
+## Waterkringloop en atmosfeer (milestones 7–8)
+
+`examples/hydrology.json` gebruikt modelidentiteit `hydrology-rk4-60s-12x24-v1`. De JSON voegt tijdschalen voor damp, wolken, neerslag en afvoer toe. De dagelijkse CSV bevat totale damp- en wolkenmassa, cumulatieve fluxen en de waterbudgetafwijking; de regionale CSV voegt die velden per cel toe.
+
+`examples/atmosphere-chemistry.json` gebruikt `atmosphere-chemistry-rk4-60s-12x24-v1`. De atmosfeer specificeert totale druk en molfracties voor N₂, O₂, CO₂ en Ar plus de eindige korstvoorraad. De CSV exporteert droge oppervlaktedruk, CO₂-partiële druk, opgeloste CO₂ en C/O/N-budgetfouten. De atmosfeer kan zelfstandig op een regionaal model worden gezet; voeg `surface` toe voor CO₂-opname in vloeibaar water en optioneel `hydrology` voor de waterkringloop. De optische gloed is niet aan deze gasvoorraad gekoppeld.

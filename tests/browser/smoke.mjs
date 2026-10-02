@@ -253,6 +253,43 @@ try {
     await page.screenshot({ path: 'artifacts/browser/planet-cold.png', fullPage: true });
     await page.selectOption('#climate-model', 'regional');
     await page.locator('#temperature-map').check();
+    // Both new models must replay through JSON and export every budget column.
+    for (const [choice, identity] of [['hydrology', 'hydrology-rk4-60s-12x24-v1'], ['chemistry', 'atmosphere-chemistry-rk4-60s-12x24-v1']]) {
+        await page.selectOption('#climate-model', choice);
+        await page.waitForFunction(() => document.querySelector('#water-cycle-summary') !== null);
+        if (choice === 'chemistry') {
+            assert.ok(Math.abs(Number(await page.locator('#atmosphere-summary').getAttribute('data-co2-pressure')) - 40.53) < 1e-6);
+        }
+        await page.selectOption('#experiment-model', choice);
+        await page.locator('#experiment-days').fill('2');
+        await page.locator('#initial-temperature').fill('285');
+        await page.locator('#experiment-water').fill('3');
+        await page.locator('#run-experiment').click();
+        await page.waitForFunction(() => document.querySelector('#sample-count')?.textContent.includes('3 meetpunten'), null, { timeout: 60000 });
+        await page.locator('#run-experiment').waitFor({ state: 'visible' });
+        await page.waitForFunction(() => !document.querySelector('#export-csv').disabled);
+        const json = await downloadText('#export-run-scenario');
+        const csv = await downloadText('#export-csv');
+        const regions = await downloadText('#export-regions');
+        assert.equal(JSON.parse(json).modelVersion, identity);
+        assert.ok(csv.includes('water_budget_error_kg'));
+        assert.ok(regions.includes('vapor_kg_m2'));
+        if (choice === 'chemistry') {
+            assert.ok(csv.includes('carbon_budget_error_kg'));
+            assert.ok(regions.includes('co2_partial_pressure_pa'));
+            await page.screenshot({ path: 'artifacts/browser/chemistry.png', fullPage: true });
+        }
+        await page.locator('#import-scenario').setInputFiles({ name: choice + '.json', mimeType: 'application/json', buffer: Buffer.from(json) });
+        await page.waitForFunction(expected => document.querySelector('#experiment-model').value === expected, choice);
+        await page.locator('#run-experiment').click();
+        await page.waitForFunction(() => !document.querySelector('#export-csv').disabled);
+        assert.equal(await downloadText('#export-csv'), csv);
+        assert.equal(await downloadText('#export-regions'), regions);
+        await writeFile('artifacts/browser/' + choice + '-scenario.json', json);
+        await writeFile('artifacts/browser/' + choice + '-results.csv', csv);
+        await writeFile('artifacts/browser/' + choice + '-regions.csv', regions);
+    }
+    await page.selectOption('#climate-model', 'regional');
     // Keep a developed spatial field visible in the final desktop and mobile previews.
     await page.locator('#pause').click();
     await page.waitForFunction(() => parseFloat(document.querySelector('#elapsed-days').textContent) > 3, null, { timeout: 60000 });

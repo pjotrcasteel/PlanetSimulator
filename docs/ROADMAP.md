@@ -64,7 +64,7 @@ Vocht, condensatie, neerslag, afvoer en benaderde circulatie.
 
 Acceptatie: Waterbudget sluit en convergentie bij kleinere tijdstappen is onderzocht.
 
-Status: Gepland.
+Status: geïmplementeerd in beide hosts; lokale water-/energiebalans-, reset-, replay- en 60/30/15-s-convergentietests geslaagd. GitHub-acceptatie volgt bij publicatie.
 
 ## 8. Atmosfeer en chemie
 
@@ -72,7 +72,7 @@ Gasreservoirs, partiële drukken en geselecteerde reacties.
 
 Acceptatie: Elementbalansen sluiten en voorraden worden nooit negatief.
 
-Status: Gepland.
+Status: geïmplementeerd in kern, desktop en browser, met scenario’s en CSV. Lokale druk-, balans-, oplossings-, uitgassings-, vacuüm- en replaytests geslaagd. GitHub-acceptatie volgt bij publicatie.
 
 ## 9. Eerste leven
 

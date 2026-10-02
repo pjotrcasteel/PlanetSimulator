@@ -11,7 +11,8 @@ namespace PlanetSimulator.Desktop;
 public sealed class PlanetGame : Game
 {
     private readonly GraphicsDeviceManager graphics;
-    private SimulationSession session = new(regional: new RegionalParameters(), surface: new SurfaceParameters());
+    private SimulationSession session = new(regional: new RegionalParameters(), surface: new SurfaceParameters(),
+        waterCycle: new WaterCycleParameters(), atmosphere: new AtmosphereParameters());
     private readonly CancellationTokenSource lifetime = new();
     private SimulationClock Clock => session.Clock;
     private SpriteBatch spriteBatch = null!;
@@ -127,6 +128,16 @@ public sealed class PlanetGame : Game
         if (Pressed(keyboard, Keys.T)) { temperatureMap = !temperatureMap; textureTick = -1; }
         if (Pressed(keyboard, Keys.N)) atmosphere = !atmosphere;
         if (Pressed(keyboard, Keys.V)) relief = relief == 0 ? 1 : 0;
+        if (Pressed(keyboard, Keys.Y) && session.Regional?.Surface is not null)
+        {
+            session.SelectWaterCycle(session.Regional.WaterCycle is null ? new WaterCycleParameters() : null, lifetime.Token);
+            loadedScenario = null; textureTick = -1;
+        }
+        if (Pressed(keyboard, Keys.U) && session.Regional is not null)
+        {
+            session.SelectAtmosphere(session.Atmosphere is null ? new AtmosphereParameters() : null, lifetime.Token);
+            loadedScenario = null; textureTick = -1;
+        }
         if (Pressed(keyboard, Keys.P)) RestartSurface(session.Climate.Parameters.InitialTemperatureKelvin < 273.15 ? 285 : 230);
         if (Pressed(keyboard, Keys.O)) ChangeRegional(5, 0);
         if (Pressed(keyboard, Keys.K)) ChangeRegional(-5, 0);
@@ -252,7 +263,8 @@ public sealed class PlanetGame : Game
         var climate = session.Climate.Parameters;
         var paused = Clock.IsPaused; var speed = Clock.Speed;
         session = new SimulationSession(new ClimateParameters(climate.DistanceAstronomicalUnits, climate.BondAlbedo,
-            climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? new RegionalParameters(), new SurfaceParameters());
+            climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? new RegionalParameters(), new SurfaceParameters(),
+            session.Regional?.WaterCycle, session.Regional?.Atmosphere);
         Clock.IsPaused = paused; Clock.Speed = Math.Min(speed, 86400);
         loadedScenario = null; textureTick = -1;
     }
@@ -266,11 +278,17 @@ public sealed class PlanetGame : Game
         loadedScenario = null;
     }
 
-    private ExperimentScenario CurrentScenario() => session.Regional is { Surface: { } reservoir } waterModel
-        ? ExperimentScenario.CreateSurface("Desktop water experiment", 30, session.Climate.Parameters, waterModel.Parameters, reservoir.Parameters)
-        : session.Regional is { } regional
-        ? ExperimentScenario.CreateRegional("Desktop regional experiment", 30, session.Climate.Parameters, regional.Parameters)
-        : ExperimentScenario.Create("Desktop experiment", 365, session.Climate.Parameters);
+    private ExperimentScenario CurrentScenario()
+    {
+        var model = session.Regional;
+        var scenario = model is null ? ExperimentScenario.Create("Desktop experiment", 365, session.Climate.Parameters)
+            : ExperimentScenario.CreateRegional("Desktop experiment", 30, session.Climate.Parameters, model.Parameters);
+        if (model?.Surface is { } surface) scenario = scenario with { Surface = surface.Parameters, ModelVersion = ExperimentScenario.SurfaceModelVersion };
+        if (model?.WaterCycle is { } cycle) scenario = scenario with { Hydrology = cycle, ModelVersion = ExperimentScenario.HydrologyModelVersion };
+        if (model?.Atmosphere is { } gas) scenario = scenario with { Atmosphere = gas, ModelVersion = ExperimentScenario.AtmosphereModelVersion };
+        scenario.Validate();
+        return scenario;
+    }
 
     private void ChangeRegional(double tiltChange, double diffusionChange)
     {
@@ -337,7 +355,7 @@ public sealed class PlanetGame : Game
         var mint = new Color(139, 216, 191);
         var muted = new Color(159, 177, 193);
         spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 6", new Vector2(24, 24), mint);
+        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 8", new Vector2(24, 24), mint);
         var lines = new[]
         {
             $"TEMPERATURE: {F(climate.TemperatureKelvin)} K / {F(climate.TemperatureKelvin - 273.15)} C",
@@ -369,11 +387,21 @@ public sealed class PlanetGame : Game
                 new Vector2(24, 326), mint, 1);
             text.Draw(spriteBatch, $"MASS ERROR: {water.WaterMassErrorKilograms:G3} KG", new Vector2(24, 343), muted, 1);
         }
+        if (climate.Regional?.Atmosphere is { } gas)
+        {
+            text.Draw(spriteBatch, $"DRY PRESSURE: {gas.MeanSurfacePressurePascals:F1} PA / CO2: {gas.MeanCarbonDioxideMoleFraction * 1e6:F1} PPM",
+                new Vector2(24, 360), mint, 1);
+            text.Draw(spriteBatch, $"CARBON ERROR: {gas.CarbonMassErrorKilograms:G3} KG / DISSOLVED: {gas.TotalDissolvedCarbonDioxideMassKilograms:G3} KG",
+                new Vector2(24, 377), muted, 1);
+        }
+        if (climate.Regional?.Surface?.WaterCycle is { } cycle)
+            text.Draw(spriteBatch, $"VAPOR: {cycle.TotalVaporMassKilograms:G3} KG / CLOUD: {cycle.TotalCloudMassKilograms:G3} KG",
+                new Vector2(24, 394), muted, 1);
         var bottom = GraphicsDevice.Viewport.Height - 113;
         text.Draw(spriteBatch, "DRAG: ORBIT / WHEEL: ZOOM / SPACE: PAUSE / R: RESET", new Vector2(24, bottom), muted);
         text.Draw(spriteBatch, "1-4: SPEED / A-Z: ALBEDO / PAGE UP-DOWN: DISTANCE / W: WIREFRAME", new Vector2(24, bottom + 23), muted);
         text.Draw(spriteBatch, "C: MODEL / B: WATER / T: MAP / O-K: TILT / H-J: TRANSPORT", new Vector2(24, bottom + 46), muted);
-        text.Draw(spriteBatch, "N: OPTICAL ATMOSPHERE / V: RELIEF / P: COLD-WARM START", new Vector2(24, bottom + 69), mint);
+        text.Draw(spriteBatch, "N: GLOW / V: RELIEF / P: START / Y: HYDROLOGY / U: CHEMISTRY", new Vector2(24, bottom + 69), mint);
         spriteBatch.End();
     }
 

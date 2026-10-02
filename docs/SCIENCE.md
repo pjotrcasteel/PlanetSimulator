@@ -112,4 +112,26 @@ De atmosfeer is een optische demonstratie met exponentieel afnemende dichtheid (
 
 Dit is een vereenvoudigde additieve enkelvoudige verstrooiing, zonder volledige extinctie, meervoudige verstrooiing, aerosolen, wolken of terugkoppeling naar de energiebalans. De optische schaal is gekozen voor zichtbaarheid, niet afgeleid uit een gasinventaris. Druk en chemie blijven bij milestone 8 horen. De desktop berekent belichting en atmosfeer op vertices; WebGL doet de belichting per fragment. De geometrie en toestandsgegevens zijn gelijk, maar screenshots hoeven niet pixelidentiek te zijn.
 
-De beginwerelden veranderen uitsluitend de begintemperatuur (230 of 285 K) en herstarten de tijd. De warme start is geen garantie op langdurig vloeibaar water of bewoonbaarheid. Met de referentie-instraling en zonder broeikaseffect kan deze wereld weer bevriezen.
+## Milestone 7: waterkringloop
+
+Damp, vloeibare wolken en oppervlaktewater worden in kg/m² bijgehouden op hetzelfde 12×24-rooster. De beginvoorraad damp/wolken wordt uit lokaal oppervlaktewater onttrokken, begrensd door beschikbaar water. Een droge wereld krijgt dus geen water cadeau. De opgegeven begintemperatuur geldt na deze verdeling.
+
+Verdamping, condensatie en neerslag gebruiken begrensde relaxatiefluxen. De effectieve verzadigde kolom is 50 kg/m² bij 288,15 K met een exponentiële temperatuurparameterisatie (schaal 17 K). Dit is geen berekende relatieve vochtigheid of verticaal profiel. De voorgeschreven wind is 12 m/s oostwaarts en 2 m/s zuidwaarts; poolgrenzen zijn gesloten. Sequentiële eerste-ordetransfers dragen massa én opgeslagen enthalpie. Afvoer verplaatst uitsluitend vloeibaar water naar een buurcel met lager wateroppervlak; een hydrostatisch gevuld bekken loopt niet kunstmatig leeg.
+
+De enthalpiereferentie is ijs bij 273,15 K. Damp bevat smeltwarmte plus 2.500.300 J/kg verdampingswarmte en benaderde voelbare warmte (1.850 J/kg/K). Wolken dragen vloeistofenthalpie; condensatiewarmte gaat naar het oppervlak. Neerslag en afvoer dragen hun eigen enthalpie. De globale energiebalans telt oppervlakte- en atmosferische waterenthalpie samen. Referentie voor verdampingswarmte rond het tripelpunt: [NIST](https://srd.nist.gov/jpcrdreprint/1.555947.pdf).
+
+Beperkingen: geen verticale luchtenergie, drukafhankelijke waterfasen, ijswolken, sublimatie, koken of dynamisch berekende wind. De stap is operator-split en eerste orde voor transport; de thermische RK4-stap maakt het geheel niet vierde orde. De 60/30/15-secondenproef onderzoekt temperatuur en dampconvergentie. De renderergeometrie gebruikt nog de beginkustlijn; de reservoirkaart toont actuele celmassa’s, maar is geen volledig bewegend wateroppervlak.
+
+## Milestone 8: droge atmosfeer en CO₂-uitwisseling
+
+De vier droge gassen zijn N₂, O₂, CO₂ en Ar. Voor de totale droge druk geldt p = g Σmᵢ. Molfractie xᵢ = (mᵢ/Mᵢ) / Σ(mⱼ/Mⱼ); partiële druk pᵢ = xᵢp. Voor een gemengde atmosfeer is mᵢg dus niet de partiële druk. Beginmassa’s worden uit totale druk, molfracties en molaire massa’s berekend. De standaard 400 ppm CO₂ bij 101.325 Pa geeft 40,53 Pa CO₂-druk.
+
+Druk is hier droge gasdiagnostiek. Waterdamp en wolkengewicht worden niet opgeteld; er is geen verticale structuur, drukgedreven menging, ontsnapping naar de ruimte of broeikas-terugkoppeling. De optische gloed is onafhankelijk. De C/O/N-budgetten omvatten deze droge gassen en de opgeloste/korst-CO₂, niet alle atomen in gesteenten en water.
+
+CO₂(g) ↔ CO₂(aq) gebruikt de verdunde Henry-relatie c = Hp met H = 3,4×10⁻⁴ mol/(m³ Pa) bij 298,15 K en factor exp[2400 K × (1/T − 1/298,15 K)]. De waterhoeveelheid bepaalt het oplosvolume. T wordt voor deze benadering begrensd tot 273,15–323,15 K; buiten dit bereik wordt geen gevalideerde oplosbaarheid geclaimd. Kou verhoogt de oplosbaarheid. Gas en oplossing worden samen naar een massabehoudend evenwicht gerelaxeerd, met standaard tijdschaal 24 uur. Bij bevriezen of droogvallen komt CO₂ weer vrij.
+
+De eindige korstvoorraad bevat CO₂-equivalente massa; uitgassing is een voorgeschreven bronflux met een maximum gelijk aan de resterende voorraad, geen geochemische reactievoorspelling. Standaard is deze flux nul. Alle overdrachten verplaatsen hele CO₂-moleculen zodat C en O behouden blijven. N₂/O₂/Ar reageren niet. Opgelost CO₂ blijft een lokaal reservoir; afvoer transporteert nog geen opgeloste stoffen. Oplossingswarmte, pH, carbonaatchemie, biologie en fotochemie ontbreken.
+
+Bronnen: [NASA: hydrostatische luchtdruk](https://www.grc.nasa.gov/www/k-12/airplane/atmosphere.html), [NOAA: definitie CO₂-partiële druk](https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/Handbook_2007/sop05.pdf), [Sander: Henry-constanten voor CO₂, versie 5](https://henrys-law.org/henry/casrn/124-38-9).
+
+De warme start is geen garantie op langdurig vloeibaar water of bewoonbaarheid. Met de referentie-instraling en zonder broeikaseffect kan deze wereld weer bevriezen.

@@ -6,7 +6,7 @@
 <div class="shell">
     <header>
         <a class="brand" href="./"><span class="brand-mark">◉</span> PlanetSimulator</a>
-        <span class="milestone">MILESTONE 6 <span>·</span> BROWSERDEMO</span>
+        <span class="milestone">MILESTONE 8 <span>·</span> BROWSERDEMO</span>
     </header>
     <main>
         <div class="world-column">
@@ -34,8 +34,8 @@
             <h2>Van evenaar tot pool.</h2>
             <p class="intro">Verander de afstand tot de ster of de reflectie en ontdek hoe de planeet naar een nieuw temperatuurevenwicht beweegt.</p>
             <label for="climate-model">Klimaatmodel (wisselen herstart de tijd)</label>
-            <select id="climate-model" value="@(session.Regional is null ? "global" : session.Regional.Surface is null ? "regional" : "surface")" @onchange="SelectModel" disabled="@(!ready)">
-                <option value="surface">Land, water en ijs · planeetweergave</option><option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
+            <select id="climate-model" value="@(session.Regional is null ? "global" : session.Regional.Atmosphere is not null ? "chemistry" : session.Regional.WaterCycle is not null ? "hydrology" : session.Regional.Surface is null ? "regional" : "surface")" @onchange="SelectModel" disabled="@(!ready)">
+                <option value="chemistry">Atmosfeer en CO₂</option><option value="hydrology">Waterkringloop</option><option value="surface">Land, water en ijs · planeetweergave</option><option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
             </select>
             <div class="temperature-card"><span>GEMIDDELDE MODELTEMPERATUUR</span>
                 <strong id="temperature" data-kelvin="@F(snapshot.TemperatureKelvin, "F6")">@F(snapshot.TemperatureKelvin - 273.15) <small>°C</small></strong>
@@ -69,6 +69,23 @@
                     <p class="field-hint">Terrein en kustlijn volgen de hoogtefunctie; richels en kleuren zijn visueel detail. Reliëf is uitvergroot. De gloed verandert het klimaat niet.</p>
                 </div>
             }
+            @if (snapshot.Regional?.Surface?.WaterCycle is { } cycle)
+            {
+                <div class="regional-summary" id="water-cycle-summary">
+                    <div><span>Waterdamp / wolken</span><strong>@F(cycle.TotalVaporMassKilograms, "G4") / @F(cycle.TotalCloudMassKilograms, "G4") kg</strong></div>
+                    <div><span>Neerslag sinds start</span><strong>@F(cycle.CumulativePrecipitationKilograms, "G4") kg</strong></div>
+                </div>
+            }
+            @if (snapshot.Regional?.Atmosphere is { } gas)
+            {
+                <div class="regional-summary" id="atmosphere-summary" data-pressure="@F(gas.MeanSurfacePressurePascals, "R")"
+                     data-co2-pressure="@F(gas.MeanCarbonDioxidePartialPressurePascals, "R")">
+                    <div><span>Droge luchtdruk</span><strong>@F(gas.MeanSurfacePressurePascals / 100, "F1") hPa</strong></div>
+                    <div><span>CO₂</span><strong>@F(gas.MeanCarbonDioxideMoleFraction * 1e6, "F1") ppm · @F(gas.MeanCarbonDioxidePartialPressurePascals) Pa</strong></div>
+                    <div><span>Opgeloste CO₂</span><strong>@F(gas.TotalDissolvedCarbonDioxideMassKilograms, "G4") kg</strong></div>
+                    <div><span>Koolstofbalansafwijking</span><strong>@F(gas.CarbonMassErrorKilograms, "G3") kg</strong></div>
+                </div>
+            }
             <div class="time-card"><span>VERSTREKEN SIMULATIETIJD</span><strong id="elapsed-days">@((session.Clock.ElapsedSeconds / 86400).ToString("F3", System.Globalization.CultureInfo.InvariantCulture)) <small>dagen</small></strong></div>
             <div class="controls">
                 <button id="pause" @onclick="TogglePause" disabled="@(!ready)">@(session.Clock.IsPaused ? "▶ Hervatten" : "Ⅱ Pauzeren")</button>
@@ -100,15 +117,16 @@
                 <p>AU = afstand aarde–zon. Reset herstart op @F(session.Climate.Parameters.InitialTemperatureKelvin, "F0") K met je huidige instellingen.</p>
             </div>
             <dl><div><dt>Straal</dt><dd>6.371 km</dd></div><div><dt>Zwaartekracht</dt><dd>@session.Planet.SurfaceGravity.ToString("F2") m/s²</dd></div><div><dt>Rotatieperiode</dt><dd>24 uur</dd></div><div><dt>Substraatcapaciteit</dt><dd>10 MJ/m²/K</dd></div></dl>
-            <div class="note"><strong>Een bewust eenvoudig model</strong><p>Regionale stralingsbalans en benaderd warmtetransport, zonder atmosfeer of broeikaseffect. Geen aardse klimaatvoorspelling. De temperatuurkaart volgt modeldata; in het watermodel toont de oppervlaktekaart land, water en ijs. Faseovergangen veronderstellen vaste druk; atmosfeer, verdamping en afvoer volgen later. Reflectie blijft uniform.</p></div>
+            <div class="note"><strong>Een bewust eenvoudig model</strong><p>Regionale stralingsbalans, een benaderde waterkringloop en uitwisseling van CO₂ met water en een eindige korstvoorraad. De droge gasdruk is diagnostiek; waterfasen gebruiken nog vaste druk. Broeikaseffect en volledige oceaanchemie ontbreken. De gloed is visueel. Geen aardse klimaatvoorspelling.</p></div>
         </aside>
         <ExperimentPanel />
     </main>
-    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 6</span></footer>
+    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 8</span></footer>
 </div>
 
 @code {
-    private SimulationSession session = new(regional: new RegionalParameters(), surface: new SurfaceParameters());
+    private SimulationSession session = new(regional: new RegionalParameters(), surface: new SurfaceParameters(),
+        waterCycle: new WaterCycleParameters(), atmosphere: new AtmosphereParameters());
     private SimulationSnapshot snapshot = new(0, 0, 230, 254.578, 238.175, 158.7);
     private bool temperatureMap;
     private bool atmosphere = true;
@@ -191,8 +209,10 @@
     private async Task SelectModel(ChangeEventArgs args)
     {
         var choice = args.Value?.ToString();
-        session.SelectModel(choice is "regional" or "surface" ? new RegionalParameters() : null, lifetime.Token);
-        if (choice == "surface") session.SelectSurface(new SurfaceParameters(), lifetime.Token);
+        session.SelectModel(choice is "regional" or "surface" or "hydrology" or "chemistry" ? new RegionalParameters() : null, lifetime.Token);
+        if (choice is "surface" or "hydrology" or "chemistry") session.SelectSurface(new SurfaceParameters(), lifetime.Token);
+        if (choice is "hydrology" or "chemistry") session.SelectWaterCycle(new WaterCycleParameters(), lifetime.Token);
+        if (choice == "chemistry") session.SelectAtmosphere(new AtmosphereParameters(), lifetime.Token);
         temperatureMap = choice == "regional";
         if (module is not null)
         {
@@ -222,7 +242,8 @@
         var climate = session.Climate.Parameters;
         var paused = session.Clock.IsPaused; var speed = session.Clock.Speed;
         session = new SimulationSession(new ClimateParameters(climate.DistanceAstronomicalUnits, climate.BondAlbedo,
-            climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? new RegionalParameters(), new SurfaceParameters());
+            climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? new RegionalParameters(), new SurfaceParameters(),
+            session.Regional?.WaterCycle, session.Regional?.Atmosphere);
         session.Clock.IsPaused = paused; session.Clock.Speed = Math.Min(speed, 86400);
         snapshot = session.Snapshot();
     }

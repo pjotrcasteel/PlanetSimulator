@@ -13,7 +13,11 @@ public sealed class RegionalClimateModel
     private readonly CompensatedSum emittedEnergy = new();
     private readonly double[] enthalpies, stageTemperatures;
     private readonly double initialEnthalpy;
+    private readonly WaterCycleState? waterCycle;
+    private readonly AtmosphereState? atmosphereState;
     public SurfaceReservoirs? Surface { get; }
+    public WaterCycleParameters? WaterCycle { get; }
+    public AtmosphereParameters? Atmosphere { get; }
     public SphericalGrid Grid { get; } = new();
     public ClimateParameters Climate { get; private set; }
     public RegionalParameters Parameters { get; private set; }
@@ -30,7 +34,7 @@ public sealed class RegionalClimateModel
         - (absorbedEnergy.Value - emittedEnergy.Value);
 
     public RegionalClimateModel(ClimateParameters? climate = null, RegionalParameters? parameters = null, IReadOnlyList<double>? initialTemperatures = null,
-        SurfaceParameters? surface = null)
+        SurfaceParameters? surface = null, WaterCycleParameters? waterCycle = null, AtmosphereParameters? atmosphere = null)
     {
         Climate = climate ?? new ClimateParameters();
         Parameters = parameters ?? new RegionalParameters();
@@ -40,8 +44,14 @@ public sealed class RegionalClimateModel
         temperatures = initialTemperatures?.ToArray() ?? Enumerable.Repeat(Climate.InitialTemperatureKelvin, count).ToArray();
         if (initialTemperatures is not null) initialMeanTemperature = temperatures.Average();
         else initialMeanTemperature = Climate.InitialTemperatureKelvin;
+        if (waterCycle is not null && surface is null) throw new ArgumentException("The water cycle requires surface reservoirs.", nameof(waterCycle));
         Surface = surface is null ? null : new SurfaceReservoirs(Grid, surface);
+        WaterCycle = waterCycle;
+        if (Surface is not null && waterCycle is not null)
+            this.waterCycle = new WaterCycleState(Grid, waterCycle, Surface, temperatures);
         enthalpies = temperatures.Select((t, i) => WaterThermodynamics.Enthalpy(t, Surface?.WaterMassPerSquareMeter[i] ?? 0, Climate.ArealHeatCapacity)).ToArray();
+        Atmosphere = atmosphere;
+        if (atmosphere is not null) atmosphereState = new AtmosphereState(Grid, atmosphere);
         initialEnthalpy = enthalpies.Average();
         stageTemperatures = new double[count];
         TemperaturesKelvin = Array.AsReadOnly(temperatures);
@@ -59,7 +69,9 @@ public sealed class RegionalClimateModel
 
     private readonly double initialMeanTemperature;
     public double StoredEnergyChangeJoulesPerSquareMeter => Surface is null
-        ? Climate.ArealHeatCapacity * (MeanTemperatureKelvin - initialMeanTemperature) : enthalpies.Average() - initialEnthalpy;
+        ? Climate.ArealHeatCapacity * (MeanTemperatureKelvin - initialMeanTemperature)
+        : enthalpies.Average() - initialEnthalpy + (waterCycle?.AtmosphericEnergyJoulesPerSquareMeter ?? 0)
+            - (waterCycle?.InitialAtmosphericEnergyJoulesPerSquareMeter ?? 0);
 
     public void SetForcing(double distanceAstronomicalUnits, double bondAlbedo, CancellationToken cancellationToken)
     {
@@ -118,22 +130,35 @@ public sealed class RegionalClimateModel
         if (Surface is not null)
             for (var index = 0; index < temperatures.Length; index++)
                 temperatures[index] = WaterThermodynamics.Temperature(enthalpies[index], Surface.WaterMassPerSquareMeter[index], Climate.ArealHeatCapacity);
+        // A minute is committed atomically; cancellation is checked before its first mutation.
+        waterCycle?.Advance(seconds, Surface!.MutableWaterMassPerSquareMeter, enthalpies, Climate.ArealHeatCapacity, CancellationToken.None);
+        atmosphereState?.Advance(seconds, Surface?.MutableWaterMassPerSquareMeter, enthalpies, Climate.ArealHeatCapacity, CancellationToken.None);
+        if (Surface is not null)
+            for (var index = 0; index < temperatures.Length; index++)
+                temperatures[index] = WaterThermodynamics.Temperature(enthalpies[index], Surface.WaterMassPerSquareMeter[index], Climate.ArealHeatCapacity);
         absorbedEnergy.Add(AbsorbedWattsPerSquareMeter * seconds);
         emittedEnergy.Add((firstEmission + 2 * secondEmission + 2 * thirdEmission + fourthEmission) * seconds / 6);
         ElapsedSeconds += seconds;
     }
 
-    public RegionalSnapshot Snapshot() => new()
+    public RegionalSnapshot Snapshot()
     {
-        TemperaturesKelvin = temperatures.ToArray(),
-        Surface = Surface?.Snapshot(enthalpies),
-        MinimumTemperatureKelvin = temperatures.Min(),
-        MaximumTemperatureKelvin = temperatures.Max(),
-        NorthMeanTemperatureKelvin = temperatures.Take(temperatures.Length / 2).Average(),
-        SouthMeanTemperatureKelvin = temperatures.Skip(temperatures.Length / 2).Average(),
-        SolarDeclinationRadians = SolarDeclinationRadians(ElapsedSeconds),
-        BudgetErrorJoulesPerSquareMeter = EnergyBalanceErrorJoulesPerSquareMeter,
-    };
+        var surface = Surface;
+        var surfaceSnapshot = surface is null ? null : surface.Snapshot(enthalpies, surface.MutableWaterMassPerSquareMeter,
+            waterCycle?.Snapshot(surface.MutableWaterMassPerSquareMeter));
+        return new RegionalSnapshot
+        {
+            TemperaturesKelvin = temperatures.ToArray(),
+            Surface = surfaceSnapshot,
+            Atmosphere = atmosphereState?.Snapshot(),
+            MinimumTemperatureKelvin = temperatures.Min(),
+            MaximumTemperatureKelvin = temperatures.Max(),
+            NorthMeanTemperatureKelvin = temperatures.Take(temperatures.Length / 2).Average(),
+            SouthMeanTemperatureKelvin = temperatures.Skip(temperatures.Length / 2).Average(),
+            SolarDeclinationRadians = SolarDeclinationRadians(ElapsedSeconds),
+            BudgetErrorJoulesPerSquareMeter = EnergyBalanceErrorJoulesPerSquareMeter,
+        };
+    }
 
     private void FillSunlight(double elapsedSeconds, double[] destination)
     {
