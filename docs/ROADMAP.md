@@ -80,7 +80,7 @@ Micro-organismen, fotosynthese, ademhaling en nutriënten.
 
 Acceptatie: Groei is begrensd door beschikbare energie en grondstoffen.
 
-Status: geïmplementeerd. Eén geïnoculeerde microbenpool met CH₂O-equivalent, lichtbegrensde fotosynthese, zuurstofbegrensde ademhaling en eindige fosforquota. Water en chemische energie tellen mee in de balansen. Beide hosts, JSON/CSV, 69 lokale tests inclusief negen biologische tests; GitHub-publicatieacceptatie volgt. Geen abiogenese, ecosysteem of gekalibreerde bewoonbaarheidsvoorspelling.
+Status: voltooid. Eén geïnoculeerde microbenpool met CH₂O-equivalent, lichtbegrensde fotosynthese, zuurstofbegrensde ademhaling en eindige fosforquota. Water en chemische energie tellen mee in de balansen. Beide hosts, JSON/CSV, 69 tests inclusief negen biologische tests. Windows-build, getrimde Blazor-publicatie, Chromium en browser/desktop-vergelijking van biologische dagmonsters en alle 288 eindcellen geslaagd in workflow 37044410629. Geen abiogenese, ecosysteem of gekalibreerde bewoonbaarheidsvoorspelling.
 
 Open fysica vóór bewoonbaarheidsclaims: broeikaseffect, drukafhankelijke waterfasen en uitgebreidere oceaanchemie. Deze zijn geen onderdeel van het eenvoudige levensmodel.
 
