@@ -93,3 +93,12 @@ Bevestigd op 2 oktober 2026: [PR-workflow 36973895257](https://github.com/pjotrc
 Browseracceptatie en desktop-replay zijn uitgebreid met een biologisch scenario, dagelijkse biologische kolommen en alle 288 eindcellen. Bevestigd: [workflow 37044410629](https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/37044410629) op commit `15dad372e59a9a004c07a99d77db979108dfb1d9` is geslaagd: Windows-build en 69 tests, getrimde Blazor-publicatie, Chromium en volledige browser/desktop-replay inclusief biologie. Groei-/ademhalingssnelheden en grenzen zijn illustratief en nog niet tegen echte microbiële datasets gevalideerd.
 
 Een CLI-run van 30 dagen met `examples/first-life.json` leverde 31 meetpunten. Maximale absolute energieafwijking: 1,71×10⁻⁵ J/m²; waterafwijking circa 2,02×10⁴ kg op circa 1,53×10¹⁸ kg. Dit zijn afrondingsresiduen, geen verdwenen fysieke voorraden. Native toetsenbordbediening blijft handmatig te controleren.
+
+
+## Milestone 10 — installatiekosten en logistiek
+
+Lokale Release-build van alle projecten: geslaagd, geen waarschuwingen of fouten. 81 C#-tests geslaagd, waarvan twaalf voor terraforming: eindige energie en verwarming, precieze bouw/start/stopgrenzen, gedeelde bouwvoorraden, onvoldoende bouwenergie, tankcapaciteit en elementbehoud, vertraagde levering na stillegging, afstandskosten, ontbrekende aanvoer/uitgeschakelde installaties, alle gekoppelde budgetten, scenario-replay/reset, validatie/annuleren en 60/30/15-s-convergentie.
+
+Een gekoppelde CLI-proef van 30 dagen met `examples/terraforming.json` leverde 31 meetpunten. Maximale absolute afwijking: 1,82×10⁻⁵ J/m² voor het planetaire energiebudget, 8,95×10⁻⁸ J/m² voor de technische energievoorraad, nul voor bouwmateriaal en 0,0012 kg logistiek op circa 1,90×10¹² kg afgevangen CO₂. Eindige energie raakt op; de simulatie gaat daarna zonder verdere technische toevoer door.
+
+De browsertest controleert de nieuwe modelkeuze en editor, veranderde energievoorraad, JSON/CSV-replay, productie en levering. De GitHub-workflow vergelijkt alle dagelijkse kolommen en alle 288 eindcellen met de desktophost. Acceptatie op GitHub volgt vóór samenvoegen. Handmatige native toetsenbordacceptatie en kalibratie van technische coëfficiënten blijven open.

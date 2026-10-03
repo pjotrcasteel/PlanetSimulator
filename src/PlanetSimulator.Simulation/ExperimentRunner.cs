@@ -55,6 +55,7 @@ public sealed class ExperimentRunner
             FinalSurface = session.Snapshot().Regional?.Surface,
             FinalAtmosphere = session.Snapshot().Regional?.Atmosphere,
             FinalBiology = session.Snapshot().Regional?.Biology,
+            FinalTerraforming = session.Snapshot().Regional?.Terraforming,
         };
     }
 

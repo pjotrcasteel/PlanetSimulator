@@ -4,9 +4,9 @@ Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbo
 
 **Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
-## Milestone 9: eerste micro-organismen
+## Milestone 10: terraforming-installaties
 
-Een eenvoudig microbieel model is aangesloten op water, CO₂, zuurstof en de energiebalans. Waterkringloop, droge gasdruk en CO₂-uitwisseling blijven beschikbaar. Kies een koude of warme startwereld en bekijk hoe de berekende toestand verandert.
+Oppervlakteverwarmers, CO₂-afvang en transport tussen regio’s hebben nu eindige energie- en bouwvoorraden, bouwtijden, opslagcapaciteit en reistijden. Het microbieel model blijft aangesloten op water, CO₂, zuurstof en de energiebalans. Waterkringloop, droge gasdruk en CO₂-uitwisseling blijven beschikbaar. Kies een koude of warme startwereld en bekijk hoe de berekende toestand verandert.
 
 De planeet heeft 288 cellen met gelijke oppervlaktes, eigen temperaturen, dag/nacht, seizoenen door ashelling en conservatief warmtetransport. De temperatuurkaart volgt de berekende celwaarden op een vaste schaal van 170–330 K. De globale temperatuur en warmtestraling zijn oppervlaktegemiddelden. Kies het uniforme model om oudere experimenten te herhalen.
 
@@ -18,7 +18,7 @@ De regionale kern bevat nu ook een expliciete gasinventaris en een kleine chemie
 
 ## Starten
 
-Kies **Eerste leven · micro-organismen** in de demo en daarna **Waterwereld · 285 K**. In het experimentformulier kun je beginbiomassa en de totale fosforvoorraad instellen. **I** schakelt micro-organismen in de desktopapp (herstart). Kies **Atmosfeer en CO₂** voor het eerdere model. Kies **Waterwereld · 285 K** om opname in vloeibaar water te volgen. In het experimentformulier kun je droge druk, CO₂ in ppm en uitgassing instellen; de CSV bevat alle dagmonsters en balansen. **Y** schakelt de waterkringloop in de desktopapp; **U** schakelt de gaslaag (beide herstarten de tijd).
+Kies **Terraforming · installaties** in de demo. In het experimentformulier bewerk je het installatieplan en de voorraden; begin met 2–30 dagen. Bekijk per installatie de status en lokale temperatuur. **F** schakelt het standaard installatieplan in de desktopapp (herstart). Kies **Eerste leven · micro-organismen** voor het eerdere biologische model en **Waterwereld · 285 K** voor een warme start. In het experimentformulier kun je beginbiomassa en de totale fosforvoorraad instellen. **I** schakelt micro-organismen in de desktopapp (herstart). Kies **Atmosfeer en CO₂** voor het eerdere model. Kies **Waterwereld · 285 K** om opname in vloeibaar water te volgen. In het experimentformulier kun je droge druk, CO₂ in ppm en uitgassing instellen; de CSV bevat alle dagmonsters en balansen. **Y** schakelt de waterkringloop in de desktopapp; **U** schakelt de gaslaag (beide herstarten de tijd).
 
 Installeer .NET 10 en voer vanuit deze map uit:
 
@@ -66,7 +66,7 @@ De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset hersta
 - Simulation: double-precisie, SI-eenheden, vaste stappen van 60 seconden, RK4 en energiebudgetten.
 - Desktop: MonoGame-presentatie, orbitcamera en ingebouwde bitmaptekst.
 - Web: Blazor WebAssembly met dezelfde C#-kern; WebGL 2 doet uitsluitend weergave en camerabediening.
-- Tests: 69 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
+- Tests: 81 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
 
 Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle gebruikt `npm ci`, `npx playwright install chromium` en `npm run test:smoke -- artifacts/web/wwwroot` op een gepubliceerd pakket met het /PlanetSimulator/-basepad.
 

@@ -1,0 +1,107 @@
+{
+  "formatVersion": 1,
+  "modelVersion": "terraforming-inventory-rk4-60s-12x24-v1",
+  "name": "Terraforming: warmte en CO₂-logistiek",
+  "durationDays": 30,
+  "climate": {
+    "distanceAstronomicalUnits": 1,
+    "bondAlbedo": 0.3,
+    "arealHeatCapacity": 10000000,
+    "initialTemperatureKelvin": 285,
+    "stellarLuminositySolarUnits": 1
+  },
+  "regional": {
+    "axialTiltDegrees": 23.44,
+    "heatDiffusionWattsPerSquareMeterKelvin": 0.6,
+    "yearDays": 365.25
+  },
+  "surface": {
+    "reliefMeters": 10,
+    "waterEquivalentDepthMeters": 3
+  },
+  "hydrology": {
+    "initialVaporEquivalentDepthMeters": 0.02,
+    "initialCloudEquivalentDepthMeters": 0.001,
+    "evaporationTimescaleHours": 120,
+    "condensationTimescaleHours": 18,
+    "precipitationTimescaleHours": 30,
+    "runoffTimescaleHours": 72
+  },
+  "changes": [],
+  "atmosphere": {
+    "surfacePressurePascals": 101325,
+    "nitrogenMoleFraction": 0.78084,
+    "oxygenMoleFraction": 0.20946,
+    "carbonDioxideMoleFraction": 0.0004,
+    "argonMoleFraction": 0.0093,
+    "crustalCarbonDioxideMassPerSquareMeter": 50,
+    "surfaceGravityMetersPerSecondSquared": 9.80665,
+    "co2HenryMolesPerCubicMeterPascal": 0.00034,
+    "co2SolubilityTemperatureKelvin": 2400,
+    "co2ExchangeTimescaleHours": 24,
+    "co2OutgassingKilogramsPerSquareMeterPerYear": 0,
+    "biology": {
+      "initialBiomassKilogramsPerSquareMeter": 0.001,
+      "totalPhosphorusKilogramsPerSquareMeter": 0.0001,
+      "maximumGrowthPerDay": 1,
+      "respirationPerDay": 0.03,
+      "photosyntheticEfficiency": 0.02,
+      "phosphorusKilogramsPerMoleCarbon": 0.00029220754716981136
+    },
+    "terraforming": {
+      "initialEnergyJoulesPerSquareMeter": 100000000.0,
+      "initialMaterialKilogramsPerSquareMeter": 10,
+      "storageCapacityKilogramsPerSquareMeter": 1,
+      "installations": [
+        {
+          "name": "Oppervlakteverwarmer",
+          "kind": "heater",
+          "cellIndex": 144,
+          "destinationCellIndex": 145,
+          "startDay": 0,
+          "endDay": 30,
+          "constructionDays": 0.25,
+          "constructionMaterialKilogramsPerSquareMeter": 2,
+          "constructionEnergyJoulesPerSquareMeter": 1000000.0,
+          "powerWattsPerSquareMeter": 100,
+          "maximumThroughputKilogramsPerSquareMeterPerDay": 0.1,
+          "processingJoulesPerKilogram": 2000000.0,
+          "transportDays": 0.25,
+          "transportJoulesPerKilogramMeter": 0.1
+        },
+        {
+          "name": "CO₂-afvang",
+          "kind": "capture",
+          "cellIndex": 144,
+          "destinationCellIndex": 145,
+          "startDay": 0,
+          "endDay": 30,
+          "constructionDays": 0.25,
+          "constructionMaterialKilogramsPerSquareMeter": 2,
+          "constructionEnergyJoulesPerSquareMeter": 1000000.0,
+          "powerWattsPerSquareMeter": 100,
+          "maximumThroughputKilogramsPerSquareMeterPerDay": 0.1,
+          "processingJoulesPerKilogram": 2000000.0,
+          "transportDays": 0.25,
+          "transportJoulesPerKilogramMeter": 0.1
+        },
+        {
+          "name": "CO₂-transport",
+          "kind": "transport",
+          "cellIndex": 144,
+          "destinationCellIndex": 145,
+          "startDay": 0.5,
+          "endDay": 30,
+          "constructionDays": 0.25,
+          "constructionMaterialKilogramsPerSquareMeter": 2,
+          "constructionEnergyJoulesPerSquareMeter": 1000000.0,
+          "powerWattsPerSquareMeter": 100,
+          "maximumThroughputKilogramsPerSquareMeterPerDay": 0.1,
+          "processingJoulesPerKilogram": 2000000.0,
+          "transportDays": 0.25,
+          "transportJoulesPerKilogramMeter": 0.1
+        }
+      ]
+    }
+  }
+}

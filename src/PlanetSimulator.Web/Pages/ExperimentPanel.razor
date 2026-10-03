@@ -3,13 +3,13 @@
 @inject IJSRuntime JS
 
 <section class="experiment-panel" aria-label="Reproduceerbare experimenten">
-    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 9 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
+    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 10 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
         <p>Elke run begint opnieuw. Vergelijk temperatuurcurves en bewaar alle beginwaarden en geplande wijzigingen in een scenario.</p></div>
     <div class="experiment-layout">
         <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
             <fieldset disabled="@busy">
                 <label for="experiment-model">Model voor dit experiment</label>
-                <select id="experiment-model" value="@(chemistry?.Biology is not null ? "biology" : chemistry is not null ? "chemistry" : hydrology is not null ? "hydrology" : surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option><option value="hydrology">Waterkringloop</option><option value="chemistry">Atmosfeer en CO₂</option><option value="biology">Eerste leven · micro-organismen</option></select>
+                <select id="experiment-model" value="@(chemistry?.Terraforming is not null ? "terraforming" : chemistry?.Biology is not null ? "biology" : chemistry is not null ? "chemistry" : hydrology is not null ? "hydrology" : surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option><option value="hydrology">Waterkringloop</option><option value="chemistry">Atmosfeer en CO₂</option><option value="terraforming">Terraforming · installaties</option><option value="biology">Eerste leven · micro-organismen</option></select>
                 @if (regionalModel)
                 {
                     <div class="parameter-grid">
@@ -43,6 +43,41 @@
                     <label for="bio-phosphorus">Totale fosforvoorraad (kg P/m²)</label>
                     <input id="bio-phosphorus" type="number" min="0" max="1" step="any" required @bind="phosphorus" />
                     <p class="field-hint">Een ingebracht inoculum, geen spontaan ontstaan van leven. Groei vraagt licht, vloeibaar water, CO₂ en fosfor; ademhaling vraagt zuurstof. Koude en droge cellen zijn slapend.</p>
+                }
+                @if (chemistry?.Terraforming is not null)
+                {
+                    <details id="terraform-editor" open>
+                        <summary>Installaties en beginvoorraden</summary>
+                        <div class="parameter-grid">
+                            <div><label for="engineering-energy">Energievoorraad (J/m² per regio)</label><input id="engineering-energy" type="number" min="0" max="10000000000" step="any" required @bind="engineeringEnergy" /></div>
+                            <div><label for="engineering-material">Bouwvoorraad (kg/m² per regio)</label><input id="engineering-material" type="number" min="0" max="1000" step="any" required @bind="engineeringMaterial" /></div>
+                            <div><label for="engineering-storage">Opslagcapaciteit CO₂ (kg/m²)</label><input id="engineering-storage" type="number" min="0" max="1000" step="any" required @bind="engineeringStorage" /></div>
+                        </div>
+                        <p class="field-hint">Installaties vertegenwoordigen een hele regio. Ze delen lokale voorraden in de volgorde hieronder. Kosten en energie zijn fysiek bijgehouden; geen fictief geld. De verwarmer en pompverliezen geven warmte af. CO₂-afvang verandert de gasdruk, maar er is nog geen broeikaseffect.</p>
+                        @for (var i = 0; i < installations.Count; i++)
+                        {
+                            var item = installations[i]; var key = i;
+                            var plan = item.Build();
+                            <details @key="item" class="note">
+                                <summary>@item.Name · regio @item.Cell</summary>
+                                <label for="@($"plant-name-{key}")">Naam</label><input id="@($"plant-name-{key}")" maxlength="60" required @bind="item.Name" />
+                                <label for="@($"plant-kind-{key}")">Type</label><select id="@($"plant-kind-{key}")" @bind="item.Kind"><option value="heater">Oppervlakteverwarmer</option><option value="capture">CO₂-afvang</option><option value="transport">CO₂-transport</option></select>
+                                <div class="parameter-grid">
+                                    <div><label for="@($"plant-cell-{key}")">Bronregio (0–287)</label><input id="@($"plant-cell-{key}")" type="number" min="0" max="287" required @bind="item.Cell" /></div>
+                                    <div><label for="@($"plant-target-{key}")">Doelregio (transport)</label><input id="@($"plant-target-{key}")" type="number" min="0" max="287" required @bind="item.Destination" /></div>
+                                    <div><label for="@($"plant-start-{key}")">Startdag</label><input id="@($"plant-start-{key}")" type="number" min="0" max="730" step="any" required @bind="item.Start" /></div>
+                                    <div><label for="@($"plant-end-{key}")">Stopdag</label><input id="@($"plant-end-{key}")" type="number" min="0" max="730" step="any" required @bind="item.End" /></div>
+                                    <div><label for="@($"plant-build-{key}")">Bouwtijd (dagen)</label><input id="@($"plant-build-{key}")" type="number" min="0" max="730" step="any" required @bind="item.BuildDays" /></div>
+                                    <div><label for="@($"plant-power-{key}")">Vermogen (W/m²)</label><input id="@($"plant-power-{key}")" type="number" min="0" max="1000" step="any" required @bind="item.Power" /></div>
+                                    <div><label for="@($"plant-rate-{key}")">Capaciteit (kg/m²/dag)</label><input id="@($"plant-rate-{key}")" type="number" min="0" max="100" step="any" required @bind="item.Rate" /></div>
+                                    <div><label for="@($"plant-travel-{key}")">Reistijd (dagen)</label><input id="@($"plant-travel-{key}")" type="number" min="0.0006944444444444445" max="30" step="any" required @bind="item.TravelDays" /></div>
+                                </div>
+                                <p class="field-hint">Bouw: @F(plan.ConstructionMaterialKilogramsPerSquareMeter) kg/m² en @F(plan.ConstructionEnergyJoulesPerSquareMeter, "G4") J/m². Gasverwerking: @F(plan.ProcessingJoulesPerKilogram, "G4") J/kg; transport daarnaast @F(plan.TransportJoulesPerKilogramMeter) J/kg/m. Technische kosten zijn ook via JSON instelbaar.</p>
+                                <button type="button" class="secondary" @onclick="() => installations.Remove(item)">Installatie verwijderen</button>
+                            </details>
+                        }
+                        <button id="add-installation" type="button" class="secondary" disabled="@(installations.Count >= 16)" @onclick="() => installations.Add(new TerraformInstallationDraft(new TerraformInstallation()))">+ Installatie</button>
+                    </details>
                 }
                 <label for="scenario-name">Scenarionaam</label><input id="scenario-name" required maxlength="80" @bind="name" />
                 <div class="parameter-grid">
@@ -104,6 +139,7 @@
                 {
                     <p id="experiment-water-summary" data-liquid-fraction="@F(water.LiquidMassFraction, "R")">Vloeibaar: @F(water.LiquidMassFraction * 100)% · watermassa: @F(water.TotalWaterMassKilograms, "G4") kg · afwijking: @F(water.WaterMassErrorKilograms, "G3") kg</p>
                 }
+                <TerraformReadout State="Selected.Regional" Id="experiment-terraform-summary" />
                 @if (Selected.Regional?.Biology is { } life)
                 {
                     <p id="experiment-biology-summary">Biomassa: @F(life.TotalBiomassKilograms, "G4") kg CH₂O · vrij fosfor: @F(life.TotalAvailablePhosphorusKilograms, "G4") kg P · fosforafwijking: @F(life.PhosphorusBudgetErrorKilograms, "G3") kg</p>
@@ -140,6 +176,8 @@
     private bool regionalModel, surfaceModel;
     private WaterCycleParameters? hydrology;
     private AtmosphereParameters? chemistry;
+    private double engineeringEnergy = 1e8, engineeringMaterial = 10, engineeringStorage = 1;
+    private readonly List<TerraformInstallationDraft> installations = [];
     private double inoculum = 0.001, phosphorus = 0.0001;
     private double pressure = 101325, co2Ppm = 400, outgassing;
     private double relief = 10, waterDepth = 3;
@@ -198,8 +236,13 @@
                     : chemistry.NitrogenMoleFraction + chemistry.CarbonDioxideMoleFraction - fraction,
                 Co2OutgassingKilogramsPerSquareMeterPerYear = outgassing,
                 Biology = chemistry.Biology is { } life ? life with { InitialBiomassKilogramsPerSquareMeter = inoculum,
-                    TotalPhosphorusKilogramsPerSquareMeter = phosphorus } : null };
-            scenario = scenario with { Atmosphere = atmosphere, ModelVersion = atmosphere.Biology is null ? ExperimentScenario.AtmosphereModelVersion : ExperimentScenario.BiologyModelVersion };
+                    TotalPhosphorusKilogramsPerSquareMeter = phosphorus } : null,
+                Terraforming = chemistry.Terraforming is { } engineering ? engineering with
+                {
+                    InitialEnergyJoulesPerSquareMeter = engineeringEnergy, InitialMaterialKilogramsPerSquareMeter = engineeringMaterial,
+                    StorageCapacityKilogramsPerSquareMeter = engineeringStorage, Installations = installations.Select(p => p.Build()).ToArray(),
+                } : null };
+            scenario = scenario with { Atmosphere = atmosphere, ModelVersion = ExperimentScenario.GetAtmosphereModelVersion(atmosphere) };
         }
         scenario.Validate();
         return scenario;
@@ -208,14 +251,24 @@
     private void SelectExperimentModel(ChangeEventArgs args)
     {
         var choice = args.Value?.ToString();
-        chemistry = choice is "chemistry" or "biology" ? new AtmosphereParameters()
-            { Biology = choice == "biology" ? new BiologyParameters() : null } : null;
+        chemistry = choice is "chemistry" or "biology" or "terraforming" ? new AtmosphereParameters()
+            { Biology = choice is "biology" or "terraforming" ? new BiologyParameters() : null, Terraforming = choice == "terraforming" ? new TerraformingParameters() : null } : null;
+        ApplyEngineering(chemistry?.Terraforming);
         inoculum = 0.001; phosphorus = 0.0001;
-        hydrology = choice is "hydrology" or "chemistry" or "biology" ? new WaterCycleParameters() : null;
-        surfaceModel = choice is "surface" or "hydrology" or "chemistry" or "biology";
+        hydrology = choice is "hydrology" or "chemistry" or "biology" or "terraforming" ? new WaterCycleParameters() : null;
+        surfaceModel = choice is "surface" or "hydrology" or "chemistry" or "biology" or "terraforming";
         regionalModel = surfaceModel || choice == "regional";
         if (hydrology is not null) { days = 30; initialTemperature = 285; }
         pressure = 101325; co2Ppm = 400; outgassing = 0;
+    }
+
+    private void ApplyEngineering(TerraformingParameters? parameters)
+    {
+        installations.Clear();
+        if (parameters is null) return;
+        engineeringEnergy = parameters.InitialEnergyJoulesPerSquareMeter; engineeringMaterial = parameters.InitialMaterialKilogramsPerSquareMeter;
+        engineeringStorage = parameters.StorageCapacityKilogramsPerSquareMeter;
+        installations.AddRange(parameters.Installations.Select(p => new TerraformInstallationDraft(p)));
     }
 
     private void AddChange() => changes.Add(new ChangeDraft { Day = changes.Count == 0 ? Math.Min(30, days - 1) : changes[^1].Day + 1, Distance = distance, Albedo = albedo });
@@ -296,6 +349,7 @@
         surfaceModel = scenario.Surface is not null;
         hydrology = scenario.Hydrology;
         chemistry = scenario.Atmosphere;
+        ApplyEngineering(chemistry?.Terraforming);
         if (chemistry is not null)
         {
             pressure = chemistry.SurfacePressurePascals; co2Ppm = chemistry.CarbonDioxideMoleFraction * 1e6;

@@ -203,7 +203,7 @@ export async function start(canvas, reference, geometry) {
         return response.json();
     }).then(build => {
         const label = document.getElementById('build-version');
-        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 9 · lokaal' : `Milestone 9 · ${build.commit.slice(0, 7)}`;
+        if (label && build) label.textContent = build.commit === 'local' ? 'Milestone 10 · lokaal' : `Milestone 10 · ${build.commit.slice(0, 7)}`;
     }).catch(() => {});
 }
 

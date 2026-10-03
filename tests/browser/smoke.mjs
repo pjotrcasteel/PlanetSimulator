@@ -254,7 +254,7 @@ try {
     await page.selectOption('#climate-model', 'regional');
     await page.locator('#temperature-map').check();
     // Both new models must replay through JSON and export every budget column.
-    for (const [choice, identity] of [['hydrology', 'hydrology-rk4-60s-12x24-v1'], ['chemistry', 'atmosphere-chemistry-rk4-60s-12x24-v1'], ['biology', 'microbial-ch2o-rk4-60s-12x24-v1']]) {
+    for (const [choice, identity] of [['hydrology', 'hydrology-rk4-60s-12x24-v1'], ['chemistry', 'atmosphere-chemistry-rk4-60s-12x24-v1'], ['biology', 'microbial-ch2o-rk4-60s-12x24-v1'], ['terraforming', 'terraforming-inventory-rk4-60s-12x24-v1']]) {
         await page.selectOption('#climate-model', choice);
         await page.waitForFunction(() => document.querySelector('#water-cycle-summary') !== null);
         if (choice === 'chemistry') {
@@ -266,6 +266,11 @@ try {
             assert.ok(Number(await page.locator('#biology-summary').getAttribute('data-biomass')) > 0);
         }
         await page.selectOption('#experiment-model', choice);
+        if (choice === 'terraforming') {
+            await page.locator('#terraform-summary').waitFor();
+            await page.locator('#terraform-editor').waitFor();
+            await page.locator('#engineering-energy').fill('90000000');
+        }
         await page.locator('#experiment-days').fill('2');
         await page.locator('#initial-temperature').fill('285');
         await page.locator('#experiment-water').fill('3');
@@ -292,6 +297,16 @@ try {
             const biomassColumn = rows[0].indexOf('biomass_kg');
             assert.ok(Number(rows.at(-1)[biomassColumn]) > Number(rows[1][biomassColumn]));
             await page.screenshot({ path: 'artifacts/browser/biology.png', fullPage: true });
+        }
+        if (choice === 'terraforming') {
+            assert.equal(JSON.parse(json).atmosphere.terraforming.initialEnergyJoulesPerSquareMeter, 90000000);
+            assert.ok(csv.includes('logistics_budget_error_kg'));
+            assert.ok(regions.includes('transit_co2_kg_m2'));
+            await page.locator('#experiment-terraform-summary').waitFor();
+            const data = csv.trim().split('\n').map(line => line.split(','));
+            assert.ok(Number(data.at(-1)[data[0].indexOf('captured_co2_kg')]) > 0);
+            assert.ok(Number(data.at(-1)[data[0].indexOf('delivered_co2_kg')]) > 0);
+            await page.screenshot({ path: 'artifacts/browser/terraforming.png', fullPage: true });
         }
         await page.locator('#import-scenario').setInputFiles({ name: choice + '.json', mimeType: 'application/json', buffer: Buffer.from(json) });
         await page.waitForFunction(expected => document.querySelector('#experiment-model').value === expected, choice);
