@@ -11,7 +11,7 @@ internal sealed class AtmosphereState
     private readonly AtmosphereParameters parameters;
     private readonly double[] nitrogen, oxygen, carbonDioxide, argon, dissolvedCarbonDioxide, crustalCarbonDioxide;
     private readonly double initialCarbonMassKilograms, initialOxygenMassKilograms, initialNitrogenMassKilograms;
-    private double biologicalCarbonMoles;
+    private double biologicalCarbonMoles, engineeredCarbonDioxide;
     private double cumulativeUptake, cumulativeRelease, cumulativeOutgassing;
 
     public AtmosphereState(SphericalGrid grid, AtmosphereParameters parameters)
@@ -124,6 +124,15 @@ internal sealed class AtmosphereState
         }
     }
 
+    internal double CaptureCarbonDioxide(int cell, double requested)
+    {
+        var amount = Math.Min(carbonDioxide[cell], requested);
+        carbonDioxide[cell] -= amount;
+        return amount;
+    }
+    internal void DeliverCarbonDioxide(int cell, double amount) => carbonDioxide[cell] += amount;
+    internal void SetEngineeredCarbonDioxideInventory(double amount) => engineeredCarbonDioxide = amount;
+
     internal double AvailableDissolvedCarbonMoles(int index) => dissolvedCarbonDioxide[index] / AtmosphereParameters.CarbonDioxideMolarMassKilogramsPerMole;
     internal double AvailableOxygenMoles(int index) => oxygen[index] / AtmosphereParameters.OxygenMolarMassKilogramsPerMole;
     internal void FixCarbon(int index, double moles)
@@ -158,11 +167,11 @@ internal sealed class AtmosphereState
     private double PartialPressure(int i) => MoleFraction(i) * parameters.SurfaceGravityMetersPerSecondSquared
         * (nitrogen[i] + oxygen[i] + carbonDioxide[i] + argon[i]);
 
-    private double CarbonMassKilograms() => (carbonDioxide.Sum() + dissolvedCarbonDioxide.Sum() + crustalCarbonDioxide.Sum()
+    private double CarbonMassKilograms() => (carbonDioxide.Sum() + dissolvedCarbonDioxide.Sum() + crustalCarbonDioxide.Sum() + engineeredCarbonDioxide
         + biologicalCarbonMoles * AtmosphereParameters.CarbonDioxideMolarMassKilogramsPerMole)
         * AtmosphereParameters.CarbonMassFractionInCarbonDioxide * grid.CellAreaSquareMeters;
 
-    private double OxygenMassKilograms() => (oxygen.Sum() + (carbonDioxide.Sum() + dissolvedCarbonDioxide.Sum() + crustalCarbonDioxide.Sum())
+    private double OxygenMassKilograms() => (oxygen.Sum() + (carbonDioxide.Sum() + dissolvedCarbonDioxide.Sum() + crustalCarbonDioxide.Sum() + engineeredCarbonDioxide)
         * AtmosphereParameters.OxygenMassFractionInCarbonDioxide) * grid.CellAreaSquareMeters;
 
     private double NitrogenMassKilograms() => nitrogen.Sum() * grid.CellAreaSquareMeters;

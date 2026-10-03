@@ -90,7 +90,7 @@ Installaties, energie, productie, transport en ingrepen.
 
 Acceptatie: Iedere ingreep heeft expliciete kosten, doorlooptijd en bijwerkingen.
 
-Status: Gepland.
+Status: voltooid. Regionale verwarmers, CO₂-afvang en CO₂-transport, eindige bouw- en energievoorraden, bouwtijd, start/stop, volle tanks en vertraagde leveringen. Energie wordt als warmte geboekt; gas in tanks en onderweg blijft in C/O-balansen. Browsereditor, MonoGame-bediening, scenario’s en CSV; 81 lokale tests en een 30-daagse gekoppelde proef geslaagd. GitHub-acceptatie geslaagd in workflow 37099311885: Windows, Chromium en volledige browser/desktop-replay. Geen automatisch bewijs van bewoonbaarheid; ontbrekende broeikasfysica blijft expliciet open.
 
 ## 11. Validatie
 

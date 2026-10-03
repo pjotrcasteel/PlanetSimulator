@@ -144,6 +144,12 @@ public sealed class PlanetGame : Game
             session.SelectAtmosphere(gas with { Biology = gas.Biology is null ? new BiologyParameters() : null }, lifetime.Token);
             loadedScenario = null; textureTick = -1;
         }
+        if (Pressed(keyboard, Keys.F) && session.Regional?.Surface is not null)
+        {
+            var gas = session.Atmosphere ?? new AtmosphereParameters();
+            session.SelectAtmosphere(gas with { Terraforming = gas.Terraforming is null ? new TerraformingParameters() : null }, lifetime.Token);
+            loadedScenario = null; textureTick = -1;
+        }
         if (Pressed(keyboard, Keys.P)) RestartSurface(session.Climate.Parameters.InitialTemperatureKelvin < 273.15 ? 285 : 230);
         if (Pressed(keyboard, Keys.O)) ChangeRegional(5, 0);
         if (Pressed(keyboard, Keys.K)) ChangeRegional(-5, 0);
@@ -292,7 +298,7 @@ public sealed class PlanetGame : Game
         if (model?.Surface is { } surface) scenario = scenario with { Surface = surface.Parameters, ModelVersion = ExperimentScenario.SurfaceModelVersion };
         if (model?.WaterCycle is { } cycle) scenario = scenario with { Hydrology = cycle, ModelVersion = ExperimentScenario.HydrologyModelVersion };
         if (model?.Atmosphere is { } gas) scenario = scenario with { Atmosphere = gas,
-            ModelVersion = gas.Biology is null ? ExperimentScenario.AtmosphereModelVersion : ExperimentScenario.BiologyModelVersion };
+            ModelVersion = ExperimentScenario.GetAtmosphereModelVersion(gas) };
         scenario.Validate();
         return scenario;
     }
@@ -362,7 +368,7 @@ public sealed class PlanetGame : Game
         var mint = new Color(139, 216, 191);
         var muted = new Color(159, 177, 193);
         spriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 8", new Vector2(24, 24), mint);
+        text.Draw(spriteBatch, "PLANETSIMULATOR / MILESTONE 10", new Vector2(24, 24), mint);
         var lines = new[]
         {
             $"TEMPERATURE: {F(climate.TemperatureKelvin)} K / {F(climate.TemperatureKelvin - 273.15)} C",
@@ -407,11 +413,18 @@ public sealed class PlanetGame : Game
         if (climate.Regional?.Biology is { } life)
             text.Draw(spriteBatch, $"BIOMASS: {life.TotalBiomassKilograms:G3} KG / FREE P: {life.TotalAvailablePhosphorusKilograms:G3} KG",
                 new Vector2(24, 411), mint, 1);
+        if (climate.Regional?.Terraforming is { } engineering)
+        {
+            text.Draw(spriteBatch, $"TERRAFORM / USED: {engineering.TotalUsedEnergyJoules:G3} J / BUILT: {engineering.TotalBuiltMaterialKilograms:G3} KG",
+                new Vector2(24, 428), mint, 1);
+            text.Draw(spriteBatch, $"CO2 STORED: {engineering.TotalStoredCarbonDioxideKilograms:G3} / TRANSIT: {engineering.TotalInTransitCarbonDioxideKilograms:G3} KG",
+                new Vector2(24, 445), muted, 1);
+        }
         var bottom = GraphicsDevice.Viewport.Height - 113;
         text.Draw(spriteBatch, "DRAG: ORBIT / WHEEL: ZOOM / SPACE: PAUSE / R: RESET", new Vector2(24, bottom), muted);
         text.Draw(spriteBatch, "1-4: SPEED / A-Z: ALBEDO / PAGE UP-DOWN: DISTANCE / W: WIREFRAME", new Vector2(24, bottom + 23), muted);
         text.Draw(spriteBatch, "C: MODEL / B: WATER / T: MAP / O-K: TILT / H-J: TRANSPORT", new Vector2(24, bottom + 46), muted);
-        text.Draw(spriteBatch, "N: GLOW / V: RELIEF / P: START / Y: HYDROLOGY / U: GAS / I: LIFE", new Vector2(24, bottom + 69), mint);
+        text.Draw(spriteBatch, "N: GLOW / V: RELIEF / P: START / Y: HYDROLOGY / U: GAS / I: LIFE / F: TERRAFORM", new Vector2(24, bottom + 69), mint);
         spriteBatch.End();
     }
 

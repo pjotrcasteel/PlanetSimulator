@@ -65,3 +65,18 @@ Desktop: **I** wisselt de levenslaag en herstart; **P** kiest de warme start. **
 ```sh
 dotnet run --project src/PlanetSimulator.Desktop -- --experiment examples/first-life.json --output experiments/first-life
 ```
+
+
+## Terraforming (milestone 10)
+
+Kies **Terraforming · installaties** in het experimentformulier. Begin met 2 dagen. Het standaardplan bevat een verwarmer en CO₂-afvang in regio 144 plus transport naar regio 145. De transportbouw begint op dag 0,5; reistijd telt daarna vanaf iedere daadwerkelijke verzending.
+
+De editor biedt toevoegen/verwijderen van installaties, type, bron/doel (0–287), start- en stopdag, bouwtijd, vermogen, debiet en reistijd. Beginenergie, bouwvoorraad en tankcapaciteit zijn instelbaar. Technische energie-/materiaalcoëfficiënten staan zichtbaar bij iedere installatie en zijn in JSON aanpasbaar; import behoudt ze. Geen installaties is een bruikbare controlerun. Vermogen 0 schakelt een installatie volledig uit, zonder bouwkosten. Wisselen van live model of **F** in MonoGame herstart de simulatie.
+
+Gebruik [terraforming.json](../examples/terraforming.json) voor het volledige voorbeeld met hydrologie, chemie en biologie. Modelversie: `terraforming-inventory-rk4-60s-12x24-v1`; plannen staan onder `atmosphere.terraforming.installations`. De regionale CSV bevat resterende energie/materialen en CO₂ in tanks/onderweg. De dagelijkse CSV bevat ook verbruik, bouwkosten, productie, leveringen en drie technische budgetresiduen. Iedere run is via JSON herhaalbaar in de desktop-CLI:
+
+```sh
+dotnet run --project src/PlanetSimulator.Desktop -- --experiment examples/terraforming.json --output experiments/terraforming
+```
+
+Voor causale vergelijking: draai eerst een scenario met installaties en daarna dezelfde instellingen met een leeg installatieplan. Vergelijk vooral de bron-/doelcellen in de regionale CSV: één gewijzigde cel heeft maar een klein effect op de planeetgemiddelde temperatuur. De live uitlezing toont daarom ook de lokale temperatuur per installatie. Minder CO₂ is nog geen berekende broeikaskoeling.

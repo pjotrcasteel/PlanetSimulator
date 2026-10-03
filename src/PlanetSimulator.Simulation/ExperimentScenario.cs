@@ -12,6 +12,7 @@ public sealed record ExperimentScenario
     public const string RegionalModelVersion = "regional-blackbody-rk4-60s-12x24-v1";
     public const string SurfaceModelVersion = "surface-enthalpy-rk4-60s-12x24-v1";
     public const string HydrologyModelVersion = "hydrology-rk4-60s-12x24-v1";
+    public const string TerraformingModelVersion = "terraforming-inventory-rk4-60s-12x24-v1";
     public const string BiologyModelVersion = "microbial-ch2o-rk4-60s-12x24-v1";
     public const string AtmosphereModelVersion = "atmosphere-chemistry-rk4-60s-12x24-v1";
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -81,7 +82,7 @@ public sealed record ExperimentScenario
         var scenario = CreateRegional(name, durationDays, climate, regional, changes) with
         {
             Atmosphere = atmosphere,
-            ModelVersion = atmosphere.Biology is null ? AtmosphereModelVersion : BiologyModelVersion,
+            ModelVersion = GetAtmosphereModelVersion(atmosphere),
         };
         scenario.Validate();
         return scenario;
@@ -94,15 +95,18 @@ public sealed record ExperimentScenario
         var scenario = CreateSurface(name, durationDays, climate, regional, surface) with
         {
             Atmosphere = atmosphere,
-            ModelVersion = atmosphere.Biology is null ? AtmosphereModelVersion : BiologyModelVersion,
+            ModelVersion = GetAtmosphereModelVersion(atmosphere),
         };
         scenario.Validate();
         return scenario;
     }
 
+    public static string GetAtmosphereModelVersion(AtmosphereParameters atmosphere) => atmosphere.Terraforming is not null ? TerraformingModelVersion
+        : atmosphere.Biology is not null ? BiologyModelVersion : AtmosphereModelVersion;
+
     public void Validate()
     {
-        var expectedVersion = Atmosphere?.Biology is not null ? BiologyModelVersion : Atmosphere is not null ? AtmosphereModelVersion :
+        var expectedVersion = Atmosphere is not null ? GetAtmosphereModelVersion(Atmosphere) :
             Hydrology is not null ? HydrologyModelVersion :
             Surface is not null ? SurfaceModelVersion : Regional is null ? CurrentModelVersion : RegionalModelVersion;
         if (FormatVersion != CurrentFormatVersion || ModelVersion != expectedVersion)
@@ -115,6 +119,7 @@ public sealed record ExperimentScenario
         if (Climate is null) throw new ArgumentException("Beginwaarden ontbreken.");
         if (Changes is null || Changes.Length > 32) throw new ArgumentException("Maximaal 32 wijzigingen toegestaan.");
         if (Atmosphere?.Biology is not null && Surface is null) throw new ArgumentException("Micro-organismen vereisen waterreservoirs.");
+        if (Atmosphere?.Terraforming is not null && Surface is null) throw new ArgumentException("Terraforming vereist oppervlakte-reservoirs.");
         Atmosphere?.ValidateRuntimeValues();
         var previousDay = 0;
         foreach (var change in Changes)

@@ -12,13 +12,17 @@ if not browser or len(browser) != len(desktop) or browser[0].keys() != desktop[0
 for first, second in zip(browser, desktop):
     for column in first:
         a, b = float(first[column]), float(second[column])
-        absolute_tolerance = 0.02 if column == "budget_error_J_m2" else 1e-8
+        absolute_tolerance = 0.02 if column in ("budget_error_J_m2", "engineering_energy_error_J_m2") else 1e-8
         if column in ("water_mass_error_kg", "water_budget_error_kg"):
             absolute_tolerance = max(1, float(first["total_water_kg"])) * 1e-12
         if column in ("carbon_budget_error_kg", "oxygen_budget_error_kg", "nitrogen_budget_error_kg"):
             absolute_tolerance = max(1, float(first["total_dry_gas_kg"])) * 1e-12
         if column == "phosphorus_budget_error_kg":
             absolute_tolerance = max(1, float(browser[0]["available_phosphorus_kg"]) + float(browser[0]["biomass_kg"])) * 1e-12
+        if column == "material_budget_error_kg":
+            absolute_tolerance = max(1, float(first["engineering_material_kg"]) + float(first["engineering_built_kg"])) * 1e-12
+        if column == "logistics_budget_error_kg":
+            absolute_tolerance = max(1, float(first["captured_co2_kg"])) * 1e-12
         if column.endswith("error_kg") and max(abs(a), abs(b)) > absolute_tolerance:
             raise SystemExit(f"Conservation tolerance exceeded: {column}: {a}, {b}")
         if not math.isfinite(a) or not math.isfinite(b) or not math.isclose(a, b, rel_tol=1e-10, abs_tol=absolute_tolerance):

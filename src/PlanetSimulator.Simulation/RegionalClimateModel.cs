@@ -16,6 +16,7 @@ public sealed class RegionalClimateModel
     private readonly WaterCycleState? waterCycle;
     private readonly AtmosphereState? atmosphereState;
     private readonly BiologyState? biology;
+    private readonly TerraformingState? terraforming;
     public SurfaceReservoirs? Surface { get; }
     public WaterCycleParameters? WaterCycle { get; }
     public AtmosphereParameters? Atmosphere { get; }
@@ -58,6 +59,11 @@ public sealed class RegionalClimateModel
             if (Surface is null) throw new ArgumentException("Biology requires water reservoirs.", nameof(surface));
             biology = new BiologyState(Grid, life, atmosphereState!, Surface.WaterMassPerSquareMeter);
         }
+        if (atmosphere?.Terraforming is { } engineering)
+        {
+            if (Surface is null) throw new ArgumentException("Terraforming requires surface reservoirs.", nameof(surface));
+            terraforming = new TerraformingState(Grid, engineering, atmosphereState!);
+        }
         initialEnthalpy = enthalpies.Average();
         stageTemperatures = new double[count];
         TemperaturesKelvin = Array.AsReadOnly(temperatures);
@@ -77,7 +83,7 @@ public sealed class RegionalClimateModel
     public double StoredEnergyChangeJoulesPerSquareMeter => Surface is null
         ? Climate.ArealHeatCapacity * (MeanTemperatureKelvin - initialMeanTemperature)
         : enthalpies.Average() - initialEnthalpy + (waterCycle?.AtmosphericEnergyJoulesPerSquareMeter ?? 0)
-            - (waterCycle?.InitialAtmosphericEnergyJoulesPerSquareMeter ?? 0) + (biology?.EnergyChange ?? 0);
+            - (waterCycle?.InitialAtmosphericEnergyJoulesPerSquareMeter ?? 0) + (biology?.EnergyChange ?? 0) + (terraforming?.StoredEnergyChange ?? 0);
 
     public void SetForcing(double distanceAstronomicalUnits, double bondAlbedo, CancellationToken cancellationToken)
     {
@@ -140,6 +146,7 @@ public sealed class RegionalClimateModel
         waterCycle?.Advance(seconds, Surface!.MutableWaterMassPerSquareMeter, enthalpies, Climate.ArealHeatCapacity, CancellationToken.None);
         atmosphereState?.Advance(seconds, Surface?.MutableWaterMassPerSquareMeter, enthalpies, Climate.ArealHeatCapacity, CancellationToken.None);
         biology?.Advance(seconds, Surface!.MutableWaterMassPerSquareMeter, enthalpies, middleSunlight, Climate.ArealHeatCapacity, CancellationToken.None);
+        terraforming?.Advance(seconds, enthalpies, CancellationToken.None);
         if (Surface is not null)
             for (var index = 0; index < temperatures.Length; index++)
                 temperatures[index] = WaterThermodynamics.Temperature(enthalpies[index], Surface.WaterMassPerSquareMeter[index], Climate.ArealHeatCapacity);
@@ -169,6 +176,7 @@ public sealed class RegionalClimateModel
             Surface = surfaceSnapshot,
             Atmosphere = atmosphereState?.Snapshot(),
             Biology = biology?.Snapshot(),
+            Terraforming = terraforming?.Snapshot(),
             MinimumTemperatureKelvin = temperatures.Min(),
             MaximumTemperatureKelvin = temperatures.Max(),
             NorthMeanTemperatureKelvin = temperatures.Take(temperatures.Length / 2).Average(),

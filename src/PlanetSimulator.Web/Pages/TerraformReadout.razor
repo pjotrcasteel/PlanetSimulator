@@ -1,0 +1,24 @@
+@if (State?.Terraforming is { } engineering)
+{
+    <section id="@Id" class="note" aria-label="Terraformingresultaten" data-used-energy="@F(engineering.TotalUsedEnergyJoules)">
+        <strong>TERRAFORMING · VOORRADEN EN EFFECTEN</strong>
+        <p>Energie verbruikt: @F(engineering.TotalUsedEnergyJoules) J · resterend: @F(engineering.TotalRemainingEnergyJoules) J</p>
+        <p>Bouwmateriaal gebruikt: @F(engineering.TotalBuiltMaterialKilograms) kg · resterend: @F(engineering.TotalRemainingMaterialKilograms) kg</p>
+        <p>CO₂ opgeslagen: @F(engineering.TotalStoredCarbonDioxideKilograms) kg · onderweg: @F(engineering.TotalInTransitCarbonDioxideKilograms) kg · afgeleverd: @F(engineering.CumulativeDeliveredKilograms) kg</p>
+        @foreach (var installation in engineering.Installations)
+        {
+            <p><strong>@installation.Name</strong> · regio @installation.CellIndex
+                @if (installation.Kind == TerraformInstallation.Transport) { <span>→ @installation.DestinationCellIndex</span> }<br />
+                @installation.Status · bouw @((installation.ConstructionFraction * 100).ToString("F0"))%<br />
+                Brontemperatuur: @State.TemperaturesKelvin[installation.CellIndex].ToString("F2", System.Globalization.CultureInfo.InvariantCulture) K ·
+                energie: @F(installation.EnergyUsedJoules) J
+                @if (installation.Kind != TerraformInstallation.Heater) { <span>· verwerkt: @F(installation.ProcessedKilograms) kg</span> }</p>
+        }
+        <p>Budgetafwijking: @F(engineering.EnergyBudgetErrorJoulesPerSquareMeter) J/m² · materiaal @F(engineering.MaterialBudgetErrorKilograms) kg · logistiek @F(engineering.LogisticsBudgetErrorKilograms) kg</p>
+    </section>
+}
+@code {
+    [Parameter] public RegionalSnapshot? State { get; set; }
+    [Parameter] public string Id { get; set; } = "terraform-summary";
+    private static string F(double value) => value.ToString("G4", System.Globalization.CultureInfo.InvariantCulture);
+}
