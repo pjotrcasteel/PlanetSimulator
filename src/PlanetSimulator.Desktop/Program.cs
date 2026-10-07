@@ -1,5 +1,6 @@
 ﻿using PlanetSimulator.Desktop;
 using PlanetSimulator.Simulation;
+using System.Globalization;
 
 if (args.Length == 4 && args[0] == "--experiment" && args[2] == "--output")
 {
@@ -45,7 +46,7 @@ else if (args.Length == 3 && args[0] == "--validate" && args[1] == "--output")
 }
 else if (args.Length != 0)
 {
-    Console.Error.WriteLine("Usage: PlanetSimulator [--experiment scenario.json --output directory] [--validate --output directory]");
+    Console.Error.WriteLine("Usage: PlanetSimulator [--experiment scenario.json --output directory] [--optimize-albedo scenario.json targetK minAlbedo maxAlbedo steps --output directory] [--validate --output directory]");
     Environment.ExitCode = 1;
 }
 else
