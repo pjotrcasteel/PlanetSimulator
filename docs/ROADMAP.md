@@ -98,7 +98,10 @@ Referentiegegevens, onzekerheden en gevoeligheidsanalyse.
 
 Acceptatie: Geldigheidsgebied en afwijkingen zijn gedocumenteerd.
 
-Status: Gepland.
+Status: geïmplementeerd op de milestone-11-branch, CI-validatie nog te bevestigen. De gedeelde kern bevat reproduceerbare referentiegevallen met expliciete
+toleranties en bronverwijzingen. Bekende modeltekorten krijgen de status `expected-gap` in plaats van een kunstmatige pass. Een deterministische
+one-at-a-time gevoeligheidsanalyse varieert afstand, Bond-albedo, sterhelderheid en warmtecapaciteit over een vaste 30-daagse horizon. De desktop-CLI
+exporteert JSON en twee CSV-bestanden; GitHub Actions publiceert deze als validation-report artifact.
 
 ## 12. Uitgebreide simulator
 
