@@ -2,7 +2,7 @@
 
 ## Browser
 
-Het experimentpaneel staat onder de interactieve planeet. Kies naam, duur (1–730 dagen), begincondities en optioneel wijzigingen van afstand en Bond-albedo. Klik **Experiment uitvoeren**. Een experiment start altijd op dag 0 en gebruikt niet de huidige temperatuur of tijd van de planeet erboven. De vorige voltooide run blijft als paarse vergelijkingscurve staan. Annuleren behoudt de laatste voltooide resultaten.
+Het experimentpaneel staat onder de interactieve planeet. Kies een planeettype of stel naam, duur (1–3.650 dagen), meetinterval, begincondities en optioneel wijzigingen van afstand en Bond-albedo in. Klik **Experiment uitvoeren**. Een experiment start altijd op dag 0 en gebruikt niet de huidige temperatuur of tijd van de planeet erboven. De vorige voltooide run blijft als paarse vergelijkingscurve staan. Annuleren behoudt de laatste voltooide resultaten.
 
 De groene curve is berekende temperatuur; de gouden curve het onmiddellijke stralingsevenwicht. Een wijziging op dag 30 wordt na precies 30 dagen integreren toegepast. Het dag-30-monster heeft de temperatuur van vóór de wijziging en de nieuwe forcing/evenwichtstemperatuur. Warmtecapaciteit en sterhelderheid blijven gedurende de run constant. Wijzigingen moeten strikt oplopende gehele dagen zijn, tussen start en einde; maximaal 32.
 
@@ -24,7 +24,11 @@ Uitvoer: `scenario.json` en `results.csv`. Met Ctrl+C wordt de CLI-run afgebroke
 
 ## Bestandsformaat en reproduceerbaarheid
 
-Zie [cooling.json](../examples/cooling.json). Formatversie 1 en modelidentiteit `global-blackbody-rk4-60s-v1` leggen de huidige vergelijkingen en numerieke stap vast. Alle vijf klimaatbeginwaarden staan expliciet in SI-eenheden, behalve afstand (AU), albedo en relatieve sterhelderheid. Een scenario is een recept, geen opslag van een lopende simulatie. Huidige modeltoestand, renderer en camerastand worden niet opgeslagen.
+Nieuwe exports gebruiken formatversie 2. De nieuwe eigenschap `sampleEveryDays` bepaalt alleen welke dagen worden geëxporteerd; de numerieke integratie
+blijft iedere 60 seconden plaatsvinden. Format-v1-bestanden, waaronder de bestaande voorbeeldscenario's, worden automatisch gemigreerd naar v2 met
+`sampleEveryDays = 1`. Onbekende toekomstige formatversies blijven geweigerd.
+
+Zie [cooling.json](../examples/cooling.json). De modelidentiteit `global-blackbody-rk4-60s-v1` leggen de huidige vergelijkingen en numerieke stap vast. Alle vijf klimaatbeginwaarden staan expliciet in SI-eenheden, behalve afstand (AU), albedo en relatieve sterhelderheid. Een scenario is een recept, geen opslag van een lopende simulatie. Huidige modeltoestand, renderer en camerastand worden niet opgeslagen.
 
 De importer weigert onbekende versies/velden, ontbrekende beginwaarden, ongeldige waarden en bestanden boven 64 KiB. Nieuwe vergelijkingen of integratieregels moeten een nieuwe modelidentiteit krijgen; oude scenario’s mogen niet stilzwijgend een ander model gebruiken.
 
@@ -80,3 +84,28 @@ dotnet run --project src/PlanetSimulator.Desktop -- --experiment examples/terraf
 ```
 
 Voor causale vergelijking: draai eerst een scenario met installaties en daarna dezelfde instellingen met een leeg installatieplan. Vergelijk vooral de bron-/doelcellen in de regionale CSV: één gewijzigde cel heeft maar een klein effect op de planeetgemiddelde temperatuur. De live uitlezing toont daarom ook de lokale temperatuur per installatie. Minder CO₂ is nog geen berekende broeikaskoeling.
+
+
+## Uitgebreide simulator (milestone 12)
+
+De selector **Planeettype** vult de bestaande editor met één van zeven synthetische startpunten. Daarna zijn alle parameters gewoon bewerkbaar; een
+preset is dus geen verborgen moeilijkheidsgraad en geen nieuwe natuurkundige motor. De catalogus bevat een kale rotswereld, ijswereld, oceaanwereld,
+dunne atmosfeer, microbiële wereld, terraforming-kandidaat en een tienjarige globale klimaatreferentie.
+
+Langetermijnruns mogen maximaal 3.650 dagen duren. Gebruik voor jarenlange experimenten een grotere meetinterval, bijvoorbeeld 30 dagen. Het systeem
+bewaart altijd dag 0, iedere dag waarop een geplande forcingwijziging wordt toegepast en de laatste simulatiedag. Daardoor blijft het exacte causale
+moment van een wijziging zichtbaar, ook wanneer tussendagen niet in CSV staan.
+
+Na een run toont de browser een generieke eindinspectie. Die vat berekende toestand samen maar kent geen score als “bewoonbaar” toe. Waar het gekozen
+model data heeft, kunnen ook vloeibaar-waterfractie, luchtdruk, CO₂, biomassa en engineeringverbruik worden geïnspecteerd.
+
+Voor een eenvoudige reproduceerbare parameterzoektocht ondersteunt de desktop-CLI het uniforme klimaatmodel:
+
+```powershell
+dotnet run --project src/PlanetSimulator.Desktop -c Release -- --optimize-albedo scenario.json 288 0.1 0.8 15 --output experiments/albedo-search
+```
+
+Argumenten zijn achtereenvolgens scenario, doeltemperatuur in kelvin, minimale albedo, maximale albedo en aantal gelijkmatig verdeelde kandidaten
+(2–101). Geplande forcingwijzigingen en regionale modellen worden bewust geweigerd. De uitvoermap bevat `optimization.csv`, het reproduceerbare
+`best-scenario.json` en `best-results.csv`. Dit is een deterministische grid search van één parameter, geen algemene optimizer en geen bewijs dat
+een gevonden reflectiviteit fysiek of technisch bereikbaar is.
