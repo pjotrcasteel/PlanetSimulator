@@ -174,6 +174,7 @@
 
 @code {
     private bool regionalModel, surfaceModel;
+    private PlanetParameters planet = new();
     private WaterCycleParameters? hydrology;
     private AtmosphereParameters? chemistry;
     private double engineeringEnergy = 1e8, engineeringMaterial = 10, engineeringStorage = 1;
@@ -244,6 +245,7 @@
                 } : null };
             scenario = scenario with { Atmosphere = atmosphere, ModelVersion = ExperimentScenario.GetAtmosphereModelVersion(atmosphere) };
         }
+        scenario = scenario with { Planet = planet };
         scenario.Validate();
         return scenario;
     }
@@ -345,6 +347,7 @@
     private void Apply(ExperimentScenario scenario)
     {
         name = scenario.Name; days = scenario.DurationDays;
+        planet = scenario.Planet;
         regionalModel = scenario.Regional is not null;
         surfaceModel = scenario.Surface is not null;
         hydrology = scenario.Hydrology;

@@ -6,7 +6,7 @@
 <div class="shell">
     <header>
         <a class="brand" href="./"><span class="brand-mark">◉</span> PlanetSimulator</a>
-        <span class="milestone">MILESTONE 10 <span>·</span> BROWSERDEMO</span>
+        <span class="milestone">MILESTONE 12 <span>·</span> BROWSERDEMO</span>
     </header>
     <main>
         <div class="world-column">
@@ -30,11 +30,18 @@
         </section>
         </div>
         <aside>
-            <span class="eyebrow">REFERENTIEPLANEET</span>
-            <h2>Van evenaar tot pool.</h2>
-            <p class="intro">Verander de afstand tot de ster of de reflectie en ontdek hoe de planeet naar een nieuw temperatuurevenwicht beweegt.</p>
+            <span class="eyebrow">PLANEETPROFIEL</span>
+            <h2>@selectedProfile.Name</h2>
+            <p class="intro" id="planet-profile-description">@selectedProfile.Description</p>
+            <label for="planet-profile">Planeettype (wisselen herstart de wereld)</label>
+            <select id="planet-profile" value="@selectedProfile.Id" @onchange="SelectProfile" disabled="@(!ready)">
+                @foreach (var profile in PlanetProfiles.All)
+                {
+                    <option value="@profile.Id">@profile.Name</option>
+                }
+            </select>
             <label for="climate-model">Klimaatmodel (wisselen herstart de tijd)</label>
-            <select id="climate-model" value="@(session.Regional is null ? "global" : session.Regional.Atmosphere?.Terraforming is not null ? "terraforming" : session.Regional.Atmosphere?.Biology is not null ? "biology" : session.Regional.Atmosphere is not null ? "chemistry" : session.Regional.WaterCycle is not null ? "hydrology" : session.Regional.Surface is null ? "regional" : "surface")" @onchange="SelectModel" disabled="@(!ready)">
+            <select id="climate-model" value="@CurrentModelChoice" @onchange="SelectModel" disabled="@(!ready)">
                 <option value="terraforming">Terraforming · installaties</option><option value="biology">Eerste leven · micro-organismen</option><option value="chemistry">Atmosfeer en CO₂</option><option value="hydrology">Waterkringloop</option><option value="surface">Land, water en ijs · planeetweergave</option><option value="regional">Regionaal · 288 cellen</option><option value="global">Uniform · milestone 2</option>
             </select>
             <div class="temperature-card"><span>GEMIDDELDE MODELTEMPERATUUR</span>
@@ -127,17 +134,23 @@
                 <input id="albedo" type="range" min="0" max="0.8" step="0.01" value="@F(session.Climate.Parameters.BondAlbedo)" @oninput="ChangeAlbedo" disabled="@(!ready)" />
                 <p>AU = afstand aarde–zon. Reset herstart op @F(session.Climate.Parameters.InitialTemperatureKelvin, "F0") K met je huidige instellingen.</p>
             </div>
-            <dl><div><dt>Straal</dt><dd>6.371 km</dd></div><div><dt>Zwaartekracht</dt><dd>@session.Planet.SurfaceGravity.ToString("F2") m/s²</dd></div><div><dt>Rotatieperiode</dt><dd>24 uur</dd></div><div><dt>Substraatcapaciteit</dt><dd>10 MJ/m²/K</dd></div></dl>
+            <dl id="planet-properties" data-profile="@selectedProfile.Id">
+                <div><dt>Straal</dt><dd>@F(session.Planet.RadiusMeters / 1000, "F0") km</dd></div>
+                <div><dt>Zwaartekracht</dt><dd>@F(session.Planet.SurfaceGravity) m/s²</dd></div>
+                <div><dt>Rotatieperiode</dt><dd>@F(session.Planet.RotationPeriodSeconds / 3600) uur</dd></div>
+                <div><dt>Substraatcapaciteit</dt><dd>@F(session.Climate.Parameters.ArealHeatCapacity / 1e6) MJ/m²/K</dd></div>
+            </dl>
             <div class="note"><strong>Een bewust eenvoudig model</strong><p>Regionale stralingsbalans, een benaderde waterkringloop en uitwisseling van CO₂ met water en een eindige korstvoorraad. De droge gasdruk is diagnostiek; waterfasen gebruiken nog vaste druk. Broeikaseffect en volledige oceaanchemie ontbreken. De gloed is visueel. Geen aardse klimaatvoorspelling.</p></div>
         </aside>
         <ExperimentPanel />
     </main>
-    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 10</span></footer>
+    <footer><span>Van eenvoudige bol naar een bewoonbare wereld.</span><span id="build-version">Milestone 12</span></footer>
 </div>
 
 @code {
-    private SimulationSession session = new(regional: new RegionalParameters(), surface: new SurfaceParameters(),
-        waterCycle: new WaterCycleParameters(), atmosphere: new AtmosphereParameters());
+    private static readonly PlanetProfile ReferenceProfile = PlanetProfiles.Get(PlanetProfiles.ReferenceTerrestrialId);
+    private PlanetProfile selectedProfile = ReferenceProfile;
+    private SimulationSession session = CreateSession(ReferenceProfile, "chemistry");
     private SimulationSnapshot snapshot = new(0, 0, 230, 254.578, 238.175, 158.7);
     private bool temperatureMap;
     private bool atmosphere = true;
@@ -145,6 +158,12 @@
     private static string F(double value, string format = "F2") => value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
     private string ThermalTrend => Math.Abs(snapshot.NetWattsPerSquareMeter) < 0.1 ? "Bijna in evenwicht"
         : snapshot.NetWattsPerSquareMeter > 0 ? "Warmt op" : "Koelt af";
+    private string CurrentModelChoice => session.Regional is null ? "global"
+        : session.Regional.Atmosphere?.Terraforming is not null ? "terraforming"
+        : session.Regional.Atmosphere?.Biology is not null ? "biology"
+        : session.Regional.Atmosphere is not null ? "chemistry"
+        : session.Regional.WaterCycle is not null ? "hydrology"
+        : session.Regional.Surface is null ? "regional" : "surface";
 
     private string FluxWidth(double flux) => F(100 * flux / Math.Max(1, Math.Max(snapshot.AbsorbedWattsPerSquareMeter, snapshot.EmittedWattsPerSquareMeter)));
     private readonly CancellationTokenSource lifetime = new();
@@ -219,21 +238,59 @@
 
     private async Task SelectModel(ChangeEventArgs args)
     {
-        var choice = args.Value?.ToString();
-        session.SelectModel(choice is "regional" or "surface" or "hydrology" or "chemistry" or "biology" or "terraforming" ? new RegionalParameters() : null, lifetime.Token);
-        if (choice is "surface" or "hydrology" or "chemistry" or "biology" or "terraforming") session.SelectSurface(new SurfaceParameters(), lifetime.Token);
-        if (choice is "hydrology" or "chemistry" or "biology" or "terraforming") session.SelectWaterCycle(new WaterCycleParameters(), lifetime.Token);
-        if (choice is "chemistry" or "biology" or "terraforming") session.SelectAtmosphere(new AtmosphereParameters()
-            { Biology = choice is "biology" or "terraforming" ? new BiologyParameters() : null, Terraforming = choice == "terraforming" ? new TerraformingParameters() : null }, lifetime.Token);
+        var choice = args.Value?.ToString() ?? "global";
+        var paused = session.Clock.IsPaused;
+        var speed = session.Clock.Speed;
+        var climate = session.Climate.Parameters;
+        var regional = session.Regional?.Parameters ?? selectedProfile.Regional;
+        session = CreateSession(selectedProfile, choice, climate, regional);
+        session.Clock.IsPaused = paused;
+        session.Clock.Speed = session.Regional is null ? speed : Math.Min(speed, 86400);
         temperatureMap = choice == "regional";
-        if (module is not null)
-        {
-            await module.InvokeVoidAsync("setSurfaceGeometry", lifetime.Token, Appearance());
-            await ChangeTemperatureMapAsync();
-        }
-        if (session.Regional is not null) session.Clock.Speed = Math.Min(session.Clock.Speed, 86400);
         snapshot = session.Snapshot();
+        await RefreshSurfaceAsync();
     }
+
+    private async Task SelectProfile(ChangeEventArgs args)
+    {
+        var id = args.Value?.ToString() ?? PlanetProfiles.ReferenceTerrestrialId;
+        var choice = CurrentModelChoice;
+        var paused = session.Clock.IsPaused;
+        var speed = session.Clock.Speed;
+        selectedProfile = PlanetProfiles.Get(id);
+        session = CreateSession(selectedProfile, choice);
+        session.Clock.IsPaused = paused;
+        session.Clock.Speed = session.Regional is null ? speed : Math.Min(speed, 86400);
+        temperatureMap = choice == "regional";
+        snapshot = session.Snapshot();
+        await RefreshSurfaceAsync();
+    }
+
+    private async Task RefreshSurfaceAsync()
+    {
+        if (module is null) return;
+        await module.InvokeVoidAsync("setSurfaceGeometry", lifetime.Token, Appearance());
+        await ChangeTemperatureMapAsync();
+    }
+
+    private static SimulationSession CreateSession(PlanetProfile profile, string choice, ClimateParameters? climateOverride = null,
+        RegionalParameters? regionalOverride = null)
+    {
+        var climate = climateOverride ?? profile.Climate;
+        if (choice == "global") return new SimulationSession(climate, planet: profile.Planet);
+        var regional = regionalOverride ?? profile.Regional;
+        var hasSurface = choice is "surface" or "hydrology" or "chemistry" or "biology" or "terraforming";
+        var hasHydrology = choice is "hydrology" or "chemistry" or "biology" or "terraforming";
+        var hasAtmosphere = choice is "chemistry" or "biology" or "terraforming";
+        var atmosphere = hasAtmosphere ? profile.Atmosphere with
+        {
+            Biology = choice is "biology" or "terraforming" ? new BiologyParameters() : null,
+            Terraforming = choice == "terraforming" ? new TerraformingParameters() : null,
+        } : null;
+        return new SimulationSession(climate, regional, hasSurface ? profile.Surface : null, hasHydrology ? profile.Hydrology : null,
+            atmosphere, profile.Planet);
+    }
+
     private void ChangeTilt(ChangeEventArgs args)
     {
         if (session.Regional is { } model && double.TryParse(args.Value?.ToString(), System.Globalization.CultureInfo.InvariantCulture, out var value))
@@ -254,8 +311,8 @@
         var climate = session.Climate.Parameters;
         var paused = session.Clock.IsPaused; var speed = session.Clock.Speed;
         session = new SimulationSession(new ClimateParameters(climate.DistanceAstronomicalUnits, climate.BondAlbedo,
-            climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? new RegionalParameters(), new SurfaceParameters(),
-            session.Regional?.WaterCycle, session.Regional?.Atmosphere);
+            climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? selectedProfile.Regional,
+            selectedProfile.Surface, session.Regional?.WaterCycle, session.Regional?.Atmosphere, session.Planet.Parameters);
         session.Clock.IsPaused = paused; session.Clock.Speed = Math.Min(speed, 86400);
         snapshot = session.Snapshot();
     }

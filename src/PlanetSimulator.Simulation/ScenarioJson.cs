@@ -32,6 +32,13 @@ public static class ScenarioJson
         foreach (var name in new[] { "distanceAstronomicalUnits", "bondAlbedo", "arealHeatCapacity", "initialTemperatureKelvin", "stellarLuminositySolarUnits" })
             if (!climate.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
                 throw new ArgumentException($"Beginwaarde {name} ontbreekt of is geen getal.");
+        if (document.RootElement.TryGetProperty("planet", out var planet) && planet.ValueKind != JsonValueKind.Null)
+        {
+            if (planet.ValueKind != JsonValueKind.Object) throw new ArgumentException("Planeeteigenschappen zijn ongeldig.");
+            foreach (var name in new[] { "radiusMeters", "massKilograms", "rotationPeriodSeconds" })
+                if (!planet.TryGetProperty(name, out var value) || value.ValueKind != JsonValueKind.Number)
+                    throw new ArgumentException($"Planeeteigenschap {name} ontbreekt of is geen getal.");
+        }
         if (document.RootElement.TryGetProperty("regional", out var regional) && regional.ValueKind != JsonValueKind.Null)
         {
             if (regional.ValueKind != JsonValueKind.Object) throw new ArgumentException("Regionale instellingen zijn ongeldig.");
@@ -61,6 +68,7 @@ public static class ScenarioJson
                     throw new ArgumentException($"Atmosfeerinstelling {name} ontbreekt of is geen getal.");
         }
         var scenario = JsonSerializer.Deserialize(json, Context.ExperimentScenario) ?? throw new ArgumentException("Scenario ontbreekt.");
+        if (scenario.Planet is null) scenario = scenario with { Planet = new PlanetParameters() };
         scenario.Validate();
         return scenario;
     }

@@ -1,0 +1,24 @@
+{
+  "formatVersion": 1,
+  "modelVersion": "regional-blackbody-rk4-60s-12x24-v1",
+  "name": "Kleine droge wereld",
+  "durationDays": 10,
+  "climate": {
+    "distanceAstronomicalUnits": 1.52,
+    "bondAlbedo": 0.25,
+    "arealHeatCapacity": 2000000,
+    "initialTemperatureKelvin": 210,
+    "stellarLuminositySolarUnits": 1
+  },
+  "planet": {
+    "radiusMeters": 3390000,
+    "massKilograms": 6.42e23,
+    "rotationPeriodSeconds": 88775
+  },
+  "regional": {
+    "axialTiltDegrees": 25,
+    "heatDiffusionWattsPerSquareMeterKelvin": 0.15,
+    "yearDays": 687
+  },
+  "changes": []
+}

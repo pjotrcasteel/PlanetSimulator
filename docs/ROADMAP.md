@@ -110,4 +110,7 @@ Planeettypen, scenario-editor, inspectie en optimalisatie.
 
 Acceptatie: Langdurige experimenten zijn reproduceerbaar en visueel overtuigend.
 
-Status: Gepland.
+Status: in uitvoering. Eerste verticale slice: fysieke planeetprofielen. Straal, massa en rotatieperiode zijn scenario-eigenschappen; het regionale
+rooster gebruikt de gekozen straal voor celoppervlaktes en de gekozen rotatieperiode voor dag/nacht. De browser kan wisselen tussen drie
+reproduceerbare profielen en toont hun fysieke eigenschappen. Oude v1-scenario's zonder `planet` blijven compatibel. Scenario-editorverdieping,
+inspectietools, lange-run workflows en optimalisatie volgen in volgende slices.

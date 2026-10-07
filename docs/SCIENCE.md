@@ -167,3 +167,25 @@ De standaardwaarden (100 W/m² vermogen, 0,1 kg CO₂/m²/dag, 2 MJ/kg verwerkin
 Behoud: beschikbare + gebouwde materialen blijven constant; beschikbare + verbruikte energie blijven constant. Thermische energie plus chemische energie, hydrologische energie en resterende technische energie sluiten samen tegen de bestaande zon-/stralingsbalans. Afgevangen CO₂ = tanks + onderweg + afgeleverd. Tanks en zendingen blijven tevens in de planetaire C/O-budgetten. De temperaturen worden na technische warmte-invoer opnieuw uit enthalpie bepaald. Dit is een expliciet gesplitste stap; de heaterproef vergelijkt 60, 30 en 15 seconden.
 
 CO₂-afvang verandert druk en beschikbaarheid voor chemie/biologie, maar **nog niet het broeikaseffect**. Een verwarmer kan een regio opwarmen zolang hij energie heeft; daarmee is geen duurzame bewoonbaarheid aangetoond. Visuele gebouwen, volledige industrie, transportnetwerken en kalibratie volgen eventueel later.
+
+
+## Milestone 12: fysieke planeetprofielen
+
+Milestone 12 maakt de fysieke planeet expliciet met drie onafhankelijke SI-parameters: straal, massa en rotatieperiode. Oppervlaktezwaartekracht wordt
+berekend als g = GM/R² met G = 6,67430×10⁻¹¹ m³ kg⁻¹ s⁻². Het 12×24-rooster behoudt dezelfde hoeken en resolutie, maar celoppervlakte wordt nu
+4πR²/288. Daardoor schalen totale water-, gas-, biologische en technische voorraden die uit kg/m² worden opgebouwd vanzelf mee met het totale
+oppervlak. De lokale per-oppervlakte energiebalans verandert niet alleen door een andere straal.
+
+De regionale dag/nachtfase gebruikt de ingestelde rotatieperiode in plaats van een hardgecodeerde 86.400 s. Jaarlengte blijft afzonderlijk in
+`RegionalParameters.YearDays` staan en wordt nog in aardse dagen van 86.400 s uitgedrukt. Er is dus nog geen Kepler-koppeling tussen sterafstand,
+ster-/planeetmassa en omlooptijd, en geen getijdenvergrendeling of precessie.
+
+De browserprofielen zijn reproduceerbare startpunten:
+- **Referentie-aarde** behoudt de eerdere standaarden zodat oude resultaten vergelijkbaar blijven.
+- **Kleine droge wereld** gebruikt Mars-schaal geometrie en een dunne CO₂-rijke beginatmosfeer als experiment, maar is nadrukkelijk geen Mars-kalibratie.
+- **Oceaan-superaarde** is fictief en combineert grotere straal/massa, langere rotatie, diep water en een dichtere atmosfeer.
+
+Een profiel bundelt ook klimaat-, regionale, water- en atmosfeerbeginwaarden voor gebruiksgemak. Alleen straal, massa en rotatie zijn de nieuwe
+fundamentele planeeteigenschappen. Atmosfeersamenstelling, warmtecapaciteit, albedo, waterdiepte en diffusie blijven onafhankelijke
+modelaannames. Het huidige model berekent geen vormafplatting, hoogteafhankelijke zwaartekracht, interne geologie, magnetosfeer, ontsnapping,
+baanmechanica of automatisch broeikaseffect.

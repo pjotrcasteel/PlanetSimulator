@@ -28,6 +28,7 @@ public sealed record ExperimentScenario
     public required string Name { get; init; }
     public required int DurationDays { get; init; }
     public required ClimateParameters Climate { get; init; }
+    public PlanetParameters Planet { get; init; } = new();
     public ForcingChange[] Changes { get; init; } = [];
 
     public static ExperimentScenario Create(string name, int durationDays, ClimateParameters climate, params ForcingChange[] changes)
@@ -117,6 +118,8 @@ public sealed record ExperimentScenario
         if (string.IsNullOrWhiteSpace(Name) || Name.Length > 80) throw new ArgumentException("Geef een naam van 1–80 tekens.");
         if (DurationDays is < 1 or > 730) throw new ArgumentException("De duur moet 1–730 dagen zijn.");
         if (Climate is null) throw new ArgumentException("Beginwaarden ontbreken.");
+        if (Planet is null) throw new ArgumentException("Planeeteigenschappen ontbreken.");
+        Planet.Validate();
         if (Changes is null || Changes.Length > 32) throw new ArgumentException("Maximaal 32 wijzigingen toegestaan.");
         if (Atmosphere?.Biology is not null && Surface is null) throw new ArgumentException("Micro-organismen vereisen waterreservoirs.");
         if (Atmosphere?.Terraforming is not null && Surface is null) throw new ArgumentException("Terraforming vereist oppervlakte-reservoirs.");

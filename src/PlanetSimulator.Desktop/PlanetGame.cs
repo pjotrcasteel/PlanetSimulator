@@ -276,7 +276,7 @@ public sealed class PlanetGame : Game
         var paused = Clock.IsPaused; var speed = Clock.Speed;
         session = new SimulationSession(new ClimateParameters(climate.DistanceAstronomicalUnits, climate.BondAlbedo,
             climate.ArealHeatCapacity, kelvin, climate.StellarLuminositySolarUnits), session.Regional?.Parameters ?? new RegionalParameters(), new SurfaceParameters(),
-            session.Regional?.WaterCycle, session.Regional?.Atmosphere);
+            session.Regional?.WaterCycle, session.Regional?.Atmosphere, session.Planet.Parameters);
         Clock.IsPaused = paused; Clock.Speed = Math.Min(speed, 86400);
         loadedScenario = null; textureTick = -1;
     }
@@ -299,6 +299,7 @@ public sealed class PlanetGame : Game
         if (model?.WaterCycle is { } cycle) scenario = scenario with { Hydrology = cycle, ModelVersion = ExperimentScenario.HydrologyModelVersion };
         if (model?.Atmosphere is { } gas) scenario = scenario with { Atmosphere = gas,
             ModelVersion = ExperimentScenario.GetAtmosphereModelVersion(gas) };
+        scenario = scenario with { Planet = session.Planet.Parameters };
         scenario.Validate();
         return scenario;
     }
