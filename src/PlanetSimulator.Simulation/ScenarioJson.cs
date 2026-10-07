@@ -68,6 +68,7 @@ public static class ScenarioJson
                     throw new ArgumentException($"Atmosfeerinstelling {name} ontbreekt of is geen getal.");
         }
         var scenario = JsonSerializer.Deserialize(json, Context.ExperimentScenario) ?? throw new ArgumentException("Scenario ontbreekt.");
+        if (scenario.Planet is null) scenario = scenario with { Planet = new PlanetParameters() };
         scenario.Validate();
         return scenario;
     }
