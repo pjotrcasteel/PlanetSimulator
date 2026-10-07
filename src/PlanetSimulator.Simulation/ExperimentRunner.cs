@@ -31,13 +31,15 @@ public sealed class ExperimentRunner
         while (session.Clock.TickCount < targetTick) session.AdvanceClock(1, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
         CompletedDays++;
+        var changed = false;
         if (nextChange < Scenario.Changes.Length && Scenario.Changes[nextChange].Day == CompletedDays)
         {
             var change = Scenario.Changes[nextChange++];
             session.SetForcing(change.DistanceAstronomicalUnits, change.BondAlbedo, CancellationToken.None);
+            changed = true;
         }
 
-        Sample();
+        if (changed || IsComplete || CompletedDays % Scenario.SampleEveryDays == 0) Sample();
     }
 
     public ExperimentResult Finish(CancellationToken cancellationToken)

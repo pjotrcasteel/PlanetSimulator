@@ -88,7 +88,7 @@ try {
     const scenarioJson = await downloadText('#export-scenario');
     const baselineCsv = await downloadText('#export-csv');
     const scenario = JSON.parse(scenarioJson);
-    assert.equal(scenario.formatVersion, 1);
+    assert.equal(scenario.formatVersion, 2);
     assert.equal(scenario.modelVersion, 'global-blackbody-rk4-60s-v1');
     assert.equal(scenario.climate.arealHeatCapacity, 1e7);
     assert.equal(baselineCsv.trim().split('\n').length, 62);

@@ -4,6 +4,26 @@ Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbo
 
 **Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
+## Milestone 12: uitgebreide simulator
+
+PlanetSimulator heeft nu een bibliotheek met zeven reproduceerbare planeettypen die direct in de bestaande scenario-editor worden geladen: kale rotswereld,
+ijswereld, oceaanwereld, dunne atmosfeer, microbiële wereld, terraforming-kandidaat en een langjarige klimaatreferentie. Een preset is geen apart
+model en geen gekalibreerde reconstructie; alle onderliggende parameters blijven zichtbaar, aanpasbaar en exporteerbaar.
+
+Scenario's kunnen maximaal 3.650 simulatiedagen duren. `sampleEveryDays` maakt compacte langetermijnuitvoer mogelijk zonder de interne stap van
+60 seconden te veranderen. Dag 0, iedere geplande forcingwijziging en de laatste dag worden altijd bewaard. Nieuwe exports gebruiken scenarioformaat
+v2; oude v1-scenario's worden automatisch geïmporteerd met dagelijkse sampling.
+
+Voltooide runs krijgen een compacte inspectiesamenvatting met eindtemperatuur, temperatuurverandering, lokaal temperatuurgebied en, indien aanwezig,
+water-, atmosfeer-, biologie- en engineeringtoestand. Voor het uniforme klimaatmodel is daarnaast een deterministische Bond-albedozoeker beschikbaar:
+
+```powershell
+dotnet run --project src/PlanetSimulator.Desktop -c Release -- --optimize-albedo examples/cooling.json 255 0.1 0.8 15 --output experiments/optimized
+```
+
+De optimizer schrijft `optimization.csv`, `best-scenario.json` en `best-results.csv`. Hij zoekt uitsluitend binnen het opgegeven albedobereik en
+claimt niet dat de gevonden albedo technisch realiseerbaar, optimaal in algemene zin of bewoonbaar is.
+
 ## Milestone 11: validatie en gevoeligheid
 
 De simulator krijgt nu een reproduceerbare wetenschappelijke validatielaag naast de bestaande numerieke regressietests. De CLI kan referentiegevallen en
@@ -82,7 +102,7 @@ De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset hersta
 - Simulation: double-precisie, SI-eenheden, vaste stappen van 60 seconden, RK4 en energiebudgetten.
 - Desktop: MonoGame-presentatie, orbitcamera en ingebouwde bitmaptekst.
 - Web: Blazor WebAssembly met dezelfde C#-kern; WebGL 2 doet uitsluitend weergave en camerabediening.
-- Tests: 85 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
+- Tests: 92 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
 
 Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle gebruikt `npm ci`, `npx playwright install chromium` en `npm run test:smoke -- artifacts/web/wwwroot` op een gepubliceerd pakket met het /PlanetSimulator/-basepad.
 

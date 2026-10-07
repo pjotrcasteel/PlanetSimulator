@@ -3,11 +3,20 @@
 @inject IJSRuntime JS
 
 <section class="experiment-panel" aria-label="Reproduceerbare experimenten">
-    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 10 · EXPERIMENTEN</span><h2>Stel een vraag aan je planeet.</h2></div>
+    <div class="experiment-heading"><div><span class="eyebrow">MILESTONE 12 · UITGEBREIDE SIMULATOR</span><h2>Stel een vraag aan je planeet.</h2></div>
         <p>Elke run begint opnieuw. Vergelijk temperatuurcurves en bewaar alle beginwaarden en geplande wijzigingen in een scenario.</p></div>
     <div class="experiment-layout">
         <form class="scenario-form" @onsubmit="RunAsync" @onsubmit:preventDefault>
             <fieldset disabled="@busy">
+                <label for="planet-template">Planeettype</label>
+                <select id="planet-template" value="" @onchange="ApplyTemplate">
+                    <option value="">Handmatig scenario</option>
+                    @foreach (var template in PlanetScenarioCatalog.Templates)
+                    {
+                        <option value="@template.Id">@template.Name</option>
+                    }
+                </select>
+                <p class="field-hint">Presets vullen de bestaande editor met een volledig reproduceerbaar scenario; alle waarden blijven daarna aanpasbaar.</p>
                 <label for="experiment-model">Model voor dit experiment</label>
                 <select id="experiment-model" value="@(chemistry?.Terraforming is not null ? "terraforming" : chemistry?.Biology is not null ? "biology" : chemistry is not null ? "chemistry" : hydrology is not null ? "hydrology" : surfaceModel ? "surface" : regionalModel ? "regional" : "global")" @onchange="SelectExperimentModel"><option value="global">Uniform · milestone 2</option><option value="regional">Regionaal · 288 cellen</option><option value="surface">Land, water en ijs</option><option value="hydrology">Waterkringloop</option><option value="chemistry">Atmosfeer en CO₂</option><option value="terraforming">Terraforming · installaties</option><option value="biology">Eerste leven · micro-organismen</option></select>
                 @if (regionalModel)
@@ -65,9 +74,9 @@
                                 <div class="parameter-grid">
                                     <div><label for="@($"plant-cell-{key}")">Bronregio (0–287)</label><input id="@($"plant-cell-{key}")" type="number" min="0" max="287" required @bind="item.Cell" /></div>
                                     <div><label for="@($"plant-target-{key}")">Doelregio (transport)</label><input id="@($"plant-target-{key}")" type="number" min="0" max="287" required @bind="item.Destination" /></div>
-                                    <div><label for="@($"plant-start-{key}")">Startdag</label><input id="@($"plant-start-{key}")" type="number" min="0" max="730" step="any" required @bind="item.Start" /></div>
-                                    <div><label for="@($"plant-end-{key}")">Stopdag</label><input id="@($"plant-end-{key}")" type="number" min="0" max="730" step="any" required @bind="item.End" /></div>
-                                    <div><label for="@($"plant-build-{key}")">Bouwtijd (dagen)</label><input id="@($"plant-build-{key}")" type="number" min="0" max="730" step="any" required @bind="item.BuildDays" /></div>
+                                    <div><label for="@($"plant-start-{key}")">Startdag</label><input id="@($"plant-start-{key}")" type="number" min="0" max="@ExperimentScenario.MaximumDurationDays" step="any" required @bind="item.Start" /></div>
+                                    <div><label for="@($"plant-end-{key}")">Stopdag</label><input id="@($"plant-end-{key}")" type="number" min="0" max="@ExperimentScenario.MaximumDurationDays" step="any" required @bind="item.End" /></div>
+                                    <div><label for="@($"plant-build-{key}")">Bouwtijd (dagen)</label><input id="@($"plant-build-{key}")" type="number" min="0" max="@ExperimentScenario.MaximumDurationDays" step="any" required @bind="item.BuildDays" /></div>
                                     <div><label for="@($"plant-power-{key}")">Vermogen (W/m²)</label><input id="@($"plant-power-{key}")" type="number" min="0" max="1000" step="any" required @bind="item.Power" /></div>
                                     <div><label for="@($"plant-rate-{key}")">Capaciteit (kg/m²/dag)</label><input id="@($"plant-rate-{key}")" type="number" min="0" max="100" step="any" required @bind="item.Rate" /></div>
                                     <div><label for="@($"plant-travel-{key}")">Reistijd (dagen)</label><input id="@($"plant-travel-{key}")" type="number" min="0.0006944444444444445" max="30" step="any" required @bind="item.TravelDays" /></div>
@@ -81,7 +90,8 @@
                 }
                 <label for="scenario-name">Scenarionaam</label><input id="scenario-name" required maxlength="80" @bind="name" />
                 <div class="parameter-grid">
-                    <div><label for="experiment-days">Duur (dagen)</label><input id="experiment-days" type="number" min="1" max="730" required @bind="days" /></div>
+                    <div><label for="experiment-days">Duur (dagen)</label><input id="experiment-days" type="number" min="1" max="@ExperimentScenario.MaximumDurationDays" required @bind="days" /></div>
+                    <div><label for="sample-every">Meetinterval (dagen)</label><input id="sample-every" type="number" min="1" max="@days" required @bind="sampleEveryDays" /></div>
                     <div><label for="initial-temperature">Begintemperatuur (K)</label><input id="initial-temperature" type="number" min="1" max="1000" step="any" required @bind="initialTemperature" /></div>
                     <div><label for="experiment-distance">Afstand (AU)</label><input id="experiment-distance" type="number" min="0.2" max="5" step="any" required @bind="distance" /></div>
                     <div><label for="experiment-albedo">Bond-albedo (0–1)</label><input id="experiment-albedo" type="number" min="0" max="1" step="any" required @bind="albedo" /></div>
@@ -128,13 +138,13 @@
                     @if (previous is not null) { <path id="previous-curve" d="@Path(previous, false)" class="curve previous-curve" /> }
                     <path id="equilibrium-curve" d="@Path(result, true)" class="curve equilibrium-curve" />
                     <path id="temperature-curve" d="@Path(result, false)" class="curve current-curve" data-samples="@result.Samples.Count" />
-                    <line x1="@F(X(selectedDay))" x2="@F(X(selectedDay))" y1="40" y2="260" class="inspection-line" />
-                    <circle cx="@F(X(selectedDay))" cy="@F(Y(Selected.TemperatureKelvin))" r="4" class="inspection-dot" />
+                    <line x1="@F(X(Selected.Day))" x2="@F(X(Selected.Day))" y1="40" y2="260" class="inspection-line" />
+                    <circle cx="@F(X(Selected.Day))" cy="@F(Y(Selected.TemperatureKelvin))" r="4" class="inspection-dot" />
                     <text x="58" y="282" class="chart-label">0</text><text x="367" y="282" text-anchor="middle" class="chart-label">@F(ChartDays / 2d, "0.#")</text>
                     <text x="676" y="282" text-anchor="end" class="chart-label">@ChartDays</text><text x="367" y="305" text-anchor="middle" class="chart-label">Simulatiedagen</text>
                 </svg>
-                <label for="inspect-day">Inspecteer dag <strong id="inspected-day">@selectedDay</strong></label>
-                <input id="inspect-day" class="inspection-slider" type="range" min="0" max="@result.Scenario.DurationDays" @bind="selectedDay" @bind:event="oninput" />
+                <label for="inspect-day">Inspecteer dag <strong id="inspected-day">@Selected.Day</strong></label>
+                <input id="inspect-day" class="inspection-slider" type="range" min="0" max="@(result.Samples.Count - 1)" @bind="selectedDay" @bind:event="oninput" />
                 @if (Selected.Regional?.Surface is { } water)
                 {
                     <p id="experiment-water-summary" data-liquid-fraction="@F(water.LiquidMassFraction, "R")">Vloeibaar: @F(water.LiquidMassFraction * 100)% · watermassa: @F(water.TotalWaterMassKilograms, "G4") kg · afwijking: @F(water.WaterMassErrorKilograms, "G3") kg</p>
@@ -147,6 +157,17 @@
                 @if (Selected.Regional?.Atmosphere is { } gas)
                 {
                     <p id="experiment-atmosphere-summary">Droge druk: @F(gas.MeanSurfacePressurePascals) Pa · CO₂: @F(gas.MeanCarbonDioxideMoleFraction * 1e6) ppm · koolstofafwijking: @F(gas.CarbonMassErrorKilograms, "G3") kg</p>
+                }
+                @if (Inspection is { } inspection)
+                {
+                    <p id="experiment-inspection" class="field-hint">
+                        Eindtoestand: @F(inspection.FinalTemperatureKelvin - 273.15) °C · ΔT @F(inspection.TemperatureChangeKelvin) K · bereik
+                        @F(inspection.MinimumTemperatureKelvin - 273.15)–@F(inspection.MaximumTemperatureKelvin - 273.15) °C
+                        @if (inspection.LiquidWaterMassFraction is { } liquid)
+                        {
+                            <text> · vloeibaar water @F(liquid * 100)%</text>
+                        }
+                    </p>
                 }
                 <dl class="sample-readout"><div><dt>Temperatuur</dt><dd id="sample-temperature" data-kelvin="@F(Selected.TemperatureKelvin, "R")">@F(Selected.TemperatureKelvin - 273.15) °C</dd></div>
                     <div><dt>Netto vermogen</dt><dd>@F(Selected.AbsorbedWattsPerSquareMeter - Selected.EmittedWattsPerSquareMeter) W/m²</dd></div>
@@ -183,7 +204,7 @@
     private double relief = 10, waterDepth = 3;
     private double tilt = 23.44, diffusion = 0.6, yearDays = 365.25;
     private string name = "Referentieplaneet";
-    private int days = 365;
+    private int days = 365, sampleEveryDays = 1;
     private double initialTemperature = 230, distance = 1, albedo = 0.3, capacity = 10, luminosity = 1;
     private readonly List<ChangeDraft> changes = [];
     private ExperimentResult? result, previous;
@@ -194,7 +215,8 @@
     private readonly CancellationTokenSource lifetime = new();
     private IJSObjectReference? storage;
     private static string F(double value, string format = "F2") => value.ToString(format, System.Globalization.CultureInfo.InvariantCulture);
-    private ExperimentSample Selected => result!.Samples[selectedDay];
+    private ExperimentSample Selected => result!.Samples[Math.Clamp(selectedDay, 0, result!.Samples.Count - 1)];
+    private ExperimentInspection? Inspection => result is null ? null : ExperimentInspector.Inspect(result);
     private IEnumerable<ExperimentSample> ChartSamples => result!.Samples.Concat(previous?.Samples ?? []);
     private double ChartMinimum => ChartSamples.Min(s => Math.Min(s.TemperatureKelvin, s.EquilibriumTemperatureKelvin)) - 273.15 - 3;
     private double ChartMaximum => ChartSamples.Max(s => Math.Max(s.TemperatureKelvin, s.EquilibriumTemperatureKelvin)) - 273.15 + 3;
@@ -244,8 +266,18 @@
                 } : null };
             scenario = scenario with { Atmosphere = atmosphere, ModelVersion = ExperimentScenario.GetAtmosphereModelVersion(atmosphere) };
         }
+        scenario = scenario with { SampleEveryDays = sampleEveryDays };
         scenario.Validate();
         return scenario;
+    }
+
+    private void ApplyTemplate(ChangeEventArgs args)
+    {
+        var id = args.Value?.ToString();
+        if (string.IsNullOrWhiteSpace(id)) return;
+        Apply(PlanetScenarioCatalog.Create(id));
+        result = null; previous = null; selectedDay = 0;
+        message = $"Planeettype geladen: {name}. Pas waarden aan of voer het scenario direct uit.";
     }
 
     private void SelectExperimentModel(ChangeEventArgs args)
@@ -290,7 +322,7 @@
             }
             previous = result;
             result = runner.GetResult();
-            selectedDay = result.Scenario.DurationDays;
+            selectedDay = result.Samples.Count - 1;
             message = $"Voltooid: {result.Scenario.DurationDays} dagen, {result.Samples.Count} meetpunten. Model {result.Scenario.ModelVersion}.";
         }
         catch (OperationCanceledException) { message = "Experiment geannuleerd. De vorige resultaten blijven beschikbaar."; }
@@ -344,7 +376,7 @@
     });
     private void Apply(ExperimentScenario scenario)
     {
-        name = scenario.Name; days = scenario.DurationDays;
+        name = scenario.Name; days = scenario.DurationDays; sampleEveryDays = scenario.SampleEveryDays;
         regionalModel = scenario.Regional is not null;
         surfaceModel = scenario.Surface is not null;
         hydrology = scenario.Hydrology;
