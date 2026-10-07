@@ -74,7 +74,7 @@ public sealed class PlanetProfileTests
         var start = fastModel.GetAbsorbedFluxes(0, TestContext.CancellationToken);
         var fastHalfDay = fastModel.GetAbsorbedFluxes(21_600, TestContext.CancellationToken);
         var normalQuarterDay = normalModel.GetAbsorbedFluxes(21_600, TestContext.CancellationToken);
-        CollectionAssert.AreNotEqual(start, fastHalfDay);
-        CollectionAssert.AreNotEqual(fastHalfDay, normalQuarterDay);
+        Assert.IsFalse(start.SequenceEqual(fastHalfDay));
+        Assert.IsFalse(fastHalfDay.SequenceEqual(normalQuarterDay));
     }
 }
