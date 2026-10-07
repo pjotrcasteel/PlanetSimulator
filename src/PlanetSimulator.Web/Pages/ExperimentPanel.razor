@@ -139,7 +139,7 @@
                     <path id="equilibrium-curve" d="@Path(result, true)" class="curve equilibrium-curve" />
                     <path id="temperature-curve" d="@Path(result, false)" class="curve current-curve" data-samples="@result.Samples.Count" />
                     <line x1="@F(X(Selected.Day))" x2="@F(X(Selected.Day))" y1="40" y2="260" class="inspection-line" />
-                    <circle cx="@F(X(selectedDay))" cy="@F(Y(Selected.TemperatureKelvin))" r="4" class="inspection-dot" />
+                    <circle cx="@F(X(Selected.Day))" cy="@F(Y(Selected.TemperatureKelvin))" r="4" class="inspection-dot" />
                     <text x="58" y="282" class="chart-label">0</text><text x="367" y="282" text-anchor="middle" class="chart-label">@F(ChartDays / 2d, "0.#")</text>
                     <text x="676" y="282" text-anchor="end" class="chart-label">@ChartDays</text><text x="367" y="305" text-anchor="middle" class="chart-label">Simulatiedagen</text>
                 </svg>
@@ -160,7 +160,14 @@
                 }
                 @if (Inspection is { } inspection)
                 {
-                    <p id="experiment-inspection" class="field-hint">Eindtoestand: @F(inspection.FinalTemperatureKelvin - 273.15) °C · ΔT @F(inspection.TemperatureChangeKelvin) K · bereik @F(inspection.MinimumTemperatureKelvin - 273.15)–@F(inspection.MaximumTemperatureKelvin - 273.15) °C@if (inspection.LiquidWaterMassFraction is { } liquid) { <text> · vloeibaar water @F(liquid * 100)%</text> }</p>
+                    <p id="experiment-inspection" class="field-hint">
+                        Eindtoestand: @F(inspection.FinalTemperatureKelvin - 273.15) °C · ΔT @F(inspection.TemperatureChangeKelvin) K · bereik
+                        @F(inspection.MinimumTemperatureKelvin - 273.15)–@F(inspection.MaximumTemperatureKelvin - 273.15) °C
+                        @if (inspection.LiquidWaterMassFraction is { } liquid)
+                        {
+                            <text> · vloeibaar water @F(liquid * 100)%</text>
+                        }
+                    </p>
                 }
                 <dl class="sample-readout"><div><dt>Temperatuur</dt><dd id="sample-temperature" data-kelvin="@F(Selected.TemperatureKelvin, "R")">@F(Selected.TemperatureKelvin - 273.15) °C</dd></div>
                     <div><dt>Netto vermogen</dt><dd>@F(Selected.AbsorbedWattsPerSquareMeter - Selected.EmittedWattsPerSquareMeter) W/m²</dd></div>
