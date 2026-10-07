@@ -110,4 +110,8 @@ Planeettypen, scenario-editor, inspectie en optimalisatie.
 
 Acceptatie: Langdurige experimenten zijn reproduceerbaar en visueel overtuigend.
 
-Status: Gepland.
+Status: geïmplementeerd op de milestone-12-branch; definitieve CI-validatie volgt nog. Zeven synthetische planeettypen vullen de bestaande editor met
+volledige reproduceerbare scenario's. De maximale horizon is 3.650 dagen met configureerbare sparse sampling; forcinggrenzen en de einddag blijven
+altijd meetpunten. Scenarioformaat v2 bewaart de meetinterval en importeert v1 automatisch als dagelijkse sampling. Voltooide runs krijgen generieke
+inspectiemetrics. Het uniforme klimaatmodel heeft een deterministische Bond-albedozoeker die alle kandidaten, het beste scenario en de beste meetreeks
+exporteert. Geen preset of optimizeruitkomst is een bewoonbaarheidsclaim of gekalibreerde planeetreconstructie.
