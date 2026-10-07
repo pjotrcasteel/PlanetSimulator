@@ -53,6 +53,19 @@ public sealed class PlanetProfileTests
     }
 
     [TestMethod]
+    public void LegacyV1ScenarioWithoutPlanet_LoadsReferencePhysicalProperties()
+    {
+        var scenario = ExperimentScenario.Create("Legacy", 1, new ClimateParameters());
+        var node = System.Text.Json.Nodes.JsonNode.Parse(ScenarioJson.Serialize(scenario))!.AsObject();
+        Assert.IsTrue(node.Remove("planet"));
+        var reloaded = ScenarioJson.Deserialize(node.ToJsonString());
+        var reference = new PlanetParameters();
+        Assert.AreEqual(reference.RadiusMeters, reloaded.Planet.RadiusMeters);
+        Assert.AreEqual(reference.MassKilograms, reloaded.Planet.MassKilograms);
+        Assert.AreEqual(reference.RotationPeriodSeconds, reloaded.Planet.RotationPeriodSeconds);
+    }
+
+    [TestMethod]
     public void PlanetParameters_ChangeRotationGridAreaAndGravity()
     {
         var parameters = new PlanetParameters(3_000_000, 8e23, 100_000);
