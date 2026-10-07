@@ -24,6 +24,11 @@ Uitvoer: `scenario.json` en `results.csv`. Met Ctrl+C wordt de CLI-run afgebroke
 
 ## Bestandsformaat en reproduceerbaarheid
 
+Vanaf milestone 12 kan een scenario optioneel `planet.radiusMeters`, `planet.massKilograms` en `planet.rotationPeriodSeconds` bevatten.
+Deze waarden bepalen fysieke oppervlakte, zwaartekracht/rotatie en de regionale dag/nachtcyclus. Formatversie 1 blijft bewust behouden: bestanden
+uit milestones 3–11 zonder `planet` worden als de bestaande referentieplaneet gelezen. Nieuwe exports schrijven de planeeteigenschappen expliciet.
+Zie [small-dry-world.json](../examples/small-dry-world.json) voor een regionaal custom-planet scenario.
+
 Zie [cooling.json](../examples/cooling.json). Formatversie 1 en modelidentiteit `global-blackbody-rk4-60s-v1` leggen de huidige vergelijkingen en numerieke stap vast. Alle vijf klimaatbeginwaarden staan expliciet in SI-eenheden, behalve afstand (AU), albedo en relatieve sterhelderheid. Een scenario is een recept, geen opslag van een lopende simulatie. Huidige modeltoestand, renderer en camerastand worden niet opgeslagen.
 
 De importer weigert onbekende versies/velden, ontbrekende beginwaarden, ongeldige waarden en bestanden boven 64 KiB. Nieuwe vergelijkingen of integratieregels moeten een nieuwe modelidentiteit krijgen; oude scenario’s mogen niet stilzwijgend een ander model gebruiken.
