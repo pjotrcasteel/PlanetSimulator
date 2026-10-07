@@ -98,10 +98,11 @@ Referentiegegevens, onzekerheden en gevoeligheidsanalyse.
 
 Acceptatie: Geldigheidsgebied en afwijkingen zijn gedocumenteerd.
 
-Status: geïmplementeerd op de milestone-11-branch, CI-validatie nog te bevestigen. De gedeelde kern bevat reproduceerbare referentiegevallen met expliciete
-toleranties en bronverwijzingen. Bekende modeltekorten krijgen de status `expected-gap` in plaats van een kunstmatige pass. Een deterministische
-one-at-a-time gevoeligheidsanalyse varieert afstand, Bond-albedo, sterhelderheid en warmtecapaciteit over een vaste 30-daagse horizon. De desktop-CLI
-exporteert JSON en twee CSV-bestanden; GitHub Actions publiceert deze als validation-report artifact.
+Status: voltooid. De gedeelde kern bevat reproduceerbare referentiegevallen met expliciete toleranties en bronverwijzingen. Bekende modeltekorten
+krijgen de status `expected-gap` in plaats van een kunstmatige pass. Een deterministische one-at-a-time gevoeligheidsanalyse varieert afstand,
+Bond-albedo, sterhelderheid en warmtecapaciteit over een vaste 30-daagse horizon. De desktop-CLI exporteert JSON en twee CSV-bestanden; GitHub Actions
+publiceert deze als validation-report artifact. PR-validatie is volledig geslaagd in workflow 37647349679: 85 C#-tests, 4 referentiepasses,
+1 expected gap, 0 validatiefouten, Chromium en volledige browser/desktop-replay.
 
 ## 12. Uitgebreide simulator
 
