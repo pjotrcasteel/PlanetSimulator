@@ -8,6 +8,7 @@ namespace PlanetSimulator.Simulation;
 public sealed record ExperimentScenario
 {
     public const int CurrentFormatVersion = 1;
+    public const int MaximumDurationDays = 3650;
     public const string CurrentModelVersion = "global-blackbody-rk4-60s-v1";
     public const string RegionalModelVersion = "regional-blackbody-rk4-60s-12x24-v1";
     public const string SurfaceModelVersion = "surface-enthalpy-rk4-60s-12x24-v1";
@@ -28,6 +29,7 @@ public sealed record ExperimentScenario
     public required string Name { get; init; }
     public required int DurationDays { get; init; }
     public required ClimateParameters Climate { get; init; }
+    public int SampleEveryDays { get; init; } = 1;
     public ForcingChange[] Changes { get; init; } = [];
 
     public static ExperimentScenario Create(string name, int durationDays, ClimateParameters climate, params ForcingChange[] changes)
@@ -115,7 +117,8 @@ public sealed record ExperimentScenario
         if (Hydrology is not null && (Surface is null || Regional is null)) throw new ArgumentException("Hydrologie vereist oppervlak en regionaal model.");
         if (Atmosphere is not null && Regional is null) throw new ArgumentException("De atmosfeer vereist een regionaal model.");
         if (string.IsNullOrWhiteSpace(Name) || Name.Length > 80) throw new ArgumentException("Geef een naam van 1–80 tekens.");
-        if (DurationDays is < 1 or > 730) throw new ArgumentException("De duur moet 1–730 dagen zijn.");
+        if (DurationDays is < 1 or > MaximumDurationDays) throw new ArgumentException($"De duur moet 1–{MaximumDurationDays} dagen zijn.");
+        if (SampleEveryDays < 1 || SampleEveryDays > DurationDays) throw new ArgumentException("De meetinterval moet tussen 1 dag en de scenarioduur liggen.");
         if (Climate is null) throw new ArgumentException("Beginwaarden ontbreken.");
         if (Changes is null || Changes.Length > 32) throw new ArgumentException("Maximaal 32 wijzigingen toegestaan.");
         if (Atmosphere?.Biology is not null && Surface is null) throw new ArgumentException("Micro-organismen vereisen waterreservoirs.");
