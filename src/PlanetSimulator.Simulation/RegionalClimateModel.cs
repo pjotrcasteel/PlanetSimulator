@@ -20,7 +20,8 @@ public sealed class RegionalClimateModel
     public SurfaceReservoirs? Surface { get; }
     public WaterCycleParameters? WaterCycle { get; }
     public AtmosphereParameters? Atmosphere { get; }
-    public SphericalGrid Grid { get; } = new();
+    public PlanetParameters Planet { get; }
+    public SphericalGrid Grid { get; }
     public ClimateParameters Climate { get; private set; }
     public RegionalParameters Parameters { get; private set; }
     public IReadOnlyList<double> TemperaturesKelvin { get; }
@@ -36,8 +37,11 @@ public sealed class RegionalClimateModel
         - (absorbedEnergy.Value - emittedEnergy.Value);
 
     public RegionalClimateModel(ClimateParameters? climate = null, RegionalParameters? parameters = null, IReadOnlyList<double>? initialTemperatures = null,
-        SurfaceParameters? surface = null, WaterCycleParameters? waterCycle = null, AtmosphereParameters? atmosphere = null)
+        SurfaceParameters? surface = null, WaterCycleParameters? waterCycle = null, AtmosphereParameters? atmosphere = null, PlanetParameters? planet = null)
     {
+        Planet = planet ?? new PlanetParameters();
+        Planet.Validate();
+        Grid = new SphericalGrid(Planet.RadiusMeters);
         Climate = climate ?? new ClimateParameters();
         Parameters = parameters ?? new RegionalParameters();
         var count = Grid.Cells.Count;
@@ -189,8 +193,8 @@ public sealed class RegionalClimateModel
     private void FillSunlight(double elapsedSeconds, double[] destination)
     {
         var declination = SolarDeclinationRadians(elapsedSeconds);
-        // A prescribed 24-hour solar day. No orbital eccentricity or Keplerian period coupling.
-        var longitude = Math.Tau * (elapsedSeconds % 86400) / 86400;
+        // Rotation is prescribed by the selected planet. No orbital eccentricity or spin-orbit coupling.
+        var longitude = Math.Tau * (elapsedSeconds % Planet.RotationPeriodSeconds) / Planet.RotationPeriodSeconds;
         var x = Math.Cos(declination) * Math.Cos(longitude);
         var y = Math.Sin(declination);
         var z = Math.Cos(declination) * Math.Sin(longitude);
