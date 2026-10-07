@@ -31,6 +31,18 @@ public sealed class Milestone12Tests
     }
 
     [TestMethod]
+    public void LegacyV1Scenario_ImportsWithDailySamplingAndReexportsAsV2()
+    {
+        var current = ScenarioJson.Serialize(ExperimentScenario.Create("Legacy", 2, new ClimateParameters()));
+        var legacy = current.Replace($"\"formatVersion\": {ExperimentScenario.CurrentFormatVersion}", "\"formatVersion\": 1")
+            .Replace("  \"sampleEveryDays\": 1,\n", string.Empty);
+        var imported = ScenarioJson.Deserialize(legacy);
+        Assert.AreEqual(ExperimentScenario.CurrentFormatVersion, imported.FormatVersion);
+        Assert.AreEqual(1, imported.SampleEveryDays);
+        Assert.IsTrue(ScenarioJson.Serialize(imported).Contains($"\"formatVersion\": {ExperimentScenario.CurrentFormatVersion}", StringComparison.Ordinal));
+    }
+
+    [TestMethod]
     public void SparseSampling_PreservesChangeBoundariesAndFinalDay()
     {
         var scenario = ExperimentScenario.Create("Sparse", 120, new ClimateParameters(),
