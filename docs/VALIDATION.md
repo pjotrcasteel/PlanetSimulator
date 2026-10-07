@@ -141,3 +141,9 @@ Uitvoer:
 
 Een echte onzekerheidsverdeling, Monte Carlo-ensemble, observationele kalibratie van hydrologie/chemie/biologie/terraforming en een gevalideerd
 broeikaseffect blijven buiten deze milestone. Die beperkingen blijven onderdeel van het geldigheidsgebied.
+
+
+Bevestigd op GitHub in [workflow 37647349679](https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/37647349679): Windows Release-build met
+nul compilerwaarschuwingen en nul fouten, 85/85 C#-tests, validatie-CLI met 4 passes, 1 expected gap en 0 failures, getrimde Blazor-publicatie,
+Chromium-acceptatie en volledige browser/desktop-replay zijn geslaagd. Het CI-artifact `validation-report` bevat de JSON- en CSV-uitvoer van de
+referentie- en gevoeligheidsanalyse.
