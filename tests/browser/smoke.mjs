@@ -47,6 +47,14 @@ try {
     await page.locator('#reset').click();
     await page.waitForFunction(() => parseFloat(document.querySelector('#elapsed-days').textContent) === 0);
     assert.equal(Number(await page.locator('#temperature').getAttribute('data-kelvin')), 230);
+    await page.selectOption('#planet-profile', 'small-dry');
+    await page.waitForFunction(() => document.querySelector('#planet-properties')?.dataset.profile === 'small-dry'
+        && Number(document.querySelector('#temperature')?.dataset.kelvin) === 210);
+    assert.equal(await page.locator('#star-distance').inputValue(), '1.52');
+    assert.ok((await page.locator('#planet-profile-description').innerText()).includes('Mars-schaalwereld'));
+    await page.selectOption('#planet-profile', 'reference-terrestrial');
+    await page.waitForFunction(() => document.querySelector('#planet-properties')?.dataset.profile === 'reference-terrestrial'
+        && Number(document.querySelector('#temperature')?.dataset.kelvin) === 230);
     const referenceEquilibrium = Number(await page.locator('#equilibrium-temperature').getAttribute('data-kelvin'));
     assert.ok(Math.abs(referenceEquilibrium - 254.578) < 0.001);
     async function setRange(id, value) {
