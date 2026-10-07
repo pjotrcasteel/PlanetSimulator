@@ -72,7 +72,7 @@ public sealed class ExperimentTests
         var valid = Example();
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { FormatVersion = 2 }).Validate());
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { ModelVersion = "future-model" }).Validate());
-        Assert.ThrowsExactly<ArgumentException>(() => (valid with { DurationDays = 731 }).Validate());
+        Assert.ThrowsExactly<ArgumentException>(() => (valid with { DurationDays = ExperimentScenario.MaximumDurationDays + 1 }).Validate());
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { Changes = [valid.Changes[0], valid.Changes[0]] }).Validate());
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { Changes = [valid.Changes[0] with { Day = 60 }] }).Validate());
         var json = ScenarioJson.Serialize(valid);
