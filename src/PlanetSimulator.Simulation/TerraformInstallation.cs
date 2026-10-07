@@ -30,10 +30,10 @@ public sealed record TerraformInstallation
         if (CellIndex < 0 || CellIndex >= cells || DestinationCellIndex < 0 || DestinationCellIndex >= cells)
             throw new ArgumentOutOfRangeException(nameof(CellIndex));
         if (Kind == Transport && CellIndex == DestinationCellIndex) throw new ArgumentException("Transport vraagt twee verschillende cellen.");
-        TerraformingParameters.Check(StartDay, 0, 730, nameof(StartDay));
-        TerraformingParameters.Check(EndDay, 0, 730, nameof(EndDay));
+        TerraformingParameters.Check(StartDay, 0, ExperimentScenario.MaximumDurationDays, nameof(StartDay));
+        TerraformingParameters.Check(EndDay, 0, ExperimentScenario.MaximumDurationDays, nameof(EndDay));
         if (EndDay <= StartDay) throw new ArgumentException("Einddag moet na startdag liggen.");
-        TerraformingParameters.Check(ConstructionDays, 0, 730, nameof(ConstructionDays));
+        TerraformingParameters.Check(ConstructionDays, 0, ExperimentScenario.MaximumDurationDays, nameof(ConstructionDays));
         TerraformingParameters.Check(ConstructionMaterialKilogramsPerSquareMeter, 0, 1000, nameof(ConstructionMaterialKilogramsPerSquareMeter));
         TerraformingParameters.Check(ConstructionEnergyJoulesPerSquareMeter, 0, 1e10, nameof(ConstructionEnergyJoulesPerSquareMeter));
         TerraformingParameters.Check(PowerWattsPerSquareMeter, 0, 1000, nameof(PowerWattsPerSquareMeter));
