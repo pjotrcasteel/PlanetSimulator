@@ -70,13 +70,14 @@ public sealed class ExperimentTests
     public void InvalidOrIncompatibleScenarios_AreRejected()
     {
         var valid = Example();
-        Assert.ThrowsExactly<ArgumentException>(() => (valid with { FormatVersion = 2 }).Validate());
+        Assert.ThrowsExactly<ArgumentException>(() => (valid with { FormatVersion = ExperimentScenario.CurrentFormatVersion + 1 }).Validate());
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { ModelVersion = "future-model" }).Validate());
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { DurationDays = ExperimentScenario.MaximumDurationDays + 1 }).Validate());
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { Changes = [valid.Changes[0], valid.Changes[0]] }).Validate());
         Assert.ThrowsExactly<ArgumentException>(() => (valid with { Changes = [valid.Changes[0] with { Day = 60 }] }).Validate());
         var json = ScenarioJson.Serialize(valid);
-        Assert.ThrowsExactly<JsonException>(() => ScenarioJson.Deserialize(json.Replace("\"formatVersion\": 1,", "\"formatVersion\": 1, \"unknown\": 1,")));
+        Assert.ThrowsExactly<JsonException>(() => ScenarioJson.Deserialize(json.Replace($"\"formatVersion\": {ExperimentScenario.CurrentFormatVersion},",
+            $"\"formatVersion\": {ExperimentScenario.CurrentFormatVersion}, \"unknown\": 1,")));
         Assert.ThrowsExactly<ArgumentException>(() => ScenarioJson.Deserialize(json.Replace("\"initialTemperatureKelvin\": 230,", "")));
         Assert.ThrowsExactly<JsonException>(() => ScenarioJson.Deserialize(json.Replace("\"durationDays\": 60,", "")));
         Assert.ThrowsExactly<ArgumentException>(() => ScenarioJson.Deserialize(new string(' ', ScenarioJson.MaximumBytes + 1)));
