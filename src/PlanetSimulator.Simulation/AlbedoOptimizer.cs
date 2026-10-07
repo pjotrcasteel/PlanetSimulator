@@ -31,7 +31,6 @@ public static class AlbedoOptimizer
             var climate = scenario.Climate;
             var candidateScenario = scenario with
             {
-                Name = $"{scenario.Name} · albedo {albedo.ToString("0.###", CultureInfo.InvariantCulture)}",
                 Climate = new ClimateParameters(climate.DistanceAstronomicalUnits, albedo, climate.ArealHeatCapacity,
                     climate.InitialTemperatureKelvin, climate.StellarLuminositySolarUnits),
             };
