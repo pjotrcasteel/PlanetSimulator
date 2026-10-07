@@ -129,11 +129,17 @@ try {
         const model = document.querySelector('#climate-model');
         return pause?.disabled === false && model?.disabled === false && model.getClientRects().length > 0;
     }, null, { timeout: 60000 });
-    // Stop frame-driven Blazor rerenders before operating the model select after a full reload.
-    await page.locator('#pause').click();
+    // The animation bridge asks Blazor for a snapshot every 100 ms, so post-reload controls can rerender while Playwright checks actionability.
+    // Normal click/select behavior is exercised earlier; here we dispatch the real DOM events so this storage replay check is not timing-sensitive.
+    await page.locator('#climate-model').evaluate(element => {
+        element.value = 'global';
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    await page.waitForFunction(() => document.querySelector('#climate-model')?.value === 'global'
+        && document.querySelector('#regional-summary') === null);
+    await page.locator('#pause').evaluate(button => button.click());
     await page.waitForFunction(() => document.querySelector('#pause').textContent.includes('Hervatten'));
-    await page.selectOption('#climate-model', 'global');
-    await page.locator('#load-scenario').click();
+    await page.locator('#load-scenario').evaluate(button => button.click());
     await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Browserreferentie');
     assert.equal(await page.locator('#temperature-chart').count(), 0);
     await page.locator('#run-experiment').click();
