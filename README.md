@@ -4,6 +4,22 @@ Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbo
 
 **Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
+## Milestone 11: validatie en gevoeligheid
+
+De simulator krijgt nu een reproduceerbare wetenschappelijke validatielaag naast de bestaande numerieke regressietests. De CLI kan referentiegevallen en
+deterministische gevoeligheidsanalyses uitvoeren en schrijft `validation.json`, `validation.csv` en `sensitivity.csv`. Bekende modeltekorten worden niet
+verstopt als geslaagde tests: het ontbreken van atmosferische broeikasfysica verschijnt bijvoorbeeld expliciet als `expected-gap`.
+
+Voer de validatie lokaal uit met:
+
+```powershell
+dotnet run --project src/PlanetSimulator.Desktop -c Release -- --validate --output artifacts/validation
+```
+
+GitHub Actions genereert dezelfde artefacten bij iedere build. De eerste referentieset controleert de zonneflux op 1 AU, een aardachtig geabsorbeerd
+energiebudget, effectieve stralingstemperatuur en thermische emissie. Daarnaast worden afstand, Bond-albedo, sterhelderheid en warmtecapaciteit over een
+vaste 30-daagse horizon gevarieerd om richting en relatieve gevoeligheid van de respons zichtbaar te maken.
+
 ## Milestone 10: terraforming-installaties
 
 Oppervlakteverwarmers, CO₂-afvang en transport tussen regio’s hebben nu eindige energie- en bouwvoorraden, bouwtijden, opslagcapaciteit en reistijden. Het microbieel model blijft aangesloten op water, CO₂, zuurstof en de energiebalans. Waterkringloop, droge gasdruk en CO₂-uitwisseling blijven beschikbaar. Kies een koude of warme startwereld en bekijk hoe de berekende toestand verandert.
@@ -66,7 +82,7 @@ De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset hersta
 - Simulation: double-precisie, SI-eenheden, vaste stappen van 60 seconden, RK4 en energiebudgetten.
 - Desktop: MonoGame-presentatie, orbitcamera en ingebouwde bitmaptekst.
 - Web: Blazor WebAssembly met dezelfde C#-kern; WebGL 2 doet uitsluitend weergave en camerabediening.
-- Tests: 81 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
+- Tests: 85 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
 
 Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle gebruikt `npm ci`, `npx playwright install chromium` en `npm run test:smoke -- artifacts/web/wwwroot` op een gepubliceerd pakket met het /PlanetSimulator/-basepad.
 
