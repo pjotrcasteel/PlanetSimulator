@@ -4,6 +4,17 @@ Een C# / MonoGame-project dat iteratief groeit naar een wetenschappelijk onderbo
 
 **Live demo:** https://pjotrcasteel.github.io/PlanetSimulator/
 
+## Milestone 12: planeetprofielen
+
+De uitgebreide simulator begint met echte fysieke planeetparameters in plaats van één impliciete aardbol. De browserdemo heeft drie reproduceerbare
+startprofielen: de bestaande referentiewereld, een kleine droge wereld en een fictieve oceaan-superaarde. Straal, massa en rotatieperiode zijn nu
+onderdeel van de gedeelde C#-toestand. Daardoor veranderen celoppervlaktes en totale reservoirs met de planeetgrootte, dag/nacht volgt de gekozen
+rotatieperiode en zwaartekracht/readouts volgen massa en straal.
+
+Scenario-JSON kan een `planet`-object met `radiusMeters`, `massKilograms` en `rotationPeriodSeconds` bevatten. Oude format-v1-scenario's zonder
+dit object blijven laden als de eerdere referentieplaneet. Zie `examples/small-dry-world.json` voor een compact voorbeeld. De profielen zijn
+experiment-startpunten, geen gekalibreerde voorspellingen van aarde, Mars of een exoplaneet.
+
 ## Milestone 11: validatie en gevoeligheid
 
 De simulator krijgt nu een reproduceerbare wetenschappelijke validatielaag naast de bestaande numerieke regressietests. De CLI kan referentiegevallen en
@@ -82,7 +93,7 @@ De browser heeft knoppen en schuifregelaars voor dezelfde functies. Reset hersta
 - Simulation: double-precisie, SI-eenheden, vaste stappen van 60 seconden, RK4 en energiebudgetten.
 - Desktop: MonoGame-presentatie, orbitcamera en ingebouwde bitmaptekst.
 - Web: Blazor WebAssembly met dezelfde C#-kern; WebGL 2 doet uitsluitend weergave en camerabediening.
-- Tests: 85 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
+- Tests: 90 C#-tests, twee Node-geometriechecks en browseracceptatie op de gepubliceerde bestanden.
 
 Node-checks: `node --test tests/browser/geometry.test.mjs`. De Chromium-controle gebruikt `npm ci`, `npx playwright install chromium` en `npm run test:smoke -- artifacts/web/wwwroot` op een gepubliceerd pakket met het /PlanetSimulator/-basepad.
 
