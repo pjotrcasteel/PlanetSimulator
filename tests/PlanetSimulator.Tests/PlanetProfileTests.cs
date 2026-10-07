@@ -15,7 +15,6 @@ public sealed class PlanetProfileTests
         foreach (var profile in PlanetProfiles.All)
         {
             profile.Planet.Validate();
-            profile.Atmosphere.ValidateRuntimeValues();
             Assert.IsTrue(profile.Planet.SurfaceGravityMetersPerSecondSquared > 0);
             Assert.IsTrue(profile.Surface.WaterEquivalentDepthMeters >= 0);
         }
@@ -26,6 +25,31 @@ public sealed class PlanetProfileTests
         Assert.IsTrue(small.Planet.RadiusMeters < reference.Planet.RadiusMeters);
         Assert.IsTrue(ocean.Planet.SurfaceGravityMetersPerSecondSquared > reference.Planet.SurfaceGravityMetersPerSecondSquared);
         Assert.IsTrue(ocean.Surface.WaterEquivalentDepthMeters > reference.Surface.WaterEquivalentDepthMeters);
+        foreach (var profile in PlanetProfiles.All)
+        {
+            var scenario = ExperimentScenario.CreateAtmosphereWithSurface(profile.Name, 1, profile.Climate, profile.Regional, profile.Surface, profile.Atmosphere)
+                with { Planet = profile.Planet };
+            scenario.Validate();
+        }
+    }
+
+    [TestMethod]
+    public void CustomPlanetScenario_ReplaysAndExportsItsPhysicalCellArea()
+    {
+        var profile = PlanetProfiles.Get(PlanetProfiles.SmallDryId);
+        var scenario = ExperimentScenario.CreateSurface("Small world", 1, profile.Climate, profile.Regional, profile.Surface)
+            with { Planet = profile.Planet };
+        scenario.Validate();
+        var serialized = ScenarioJson.Serialize(scenario);
+        var reloaded = ScenarioJson.Deserialize(serialized);
+        var first = new ExperimentRunner(scenario).Finish(TestContext.CancellationToken);
+        var second = new ExperimentRunner(reloaded).Finish(TestContext.CancellationToken);
+        Assert.AreEqual(first.ToCsv(), second.ToCsv());
+        Assert.AreEqual(first.ToRegionalCsv(), second.ToRegionalCsv());
+        Assert.AreEqual(profile.Planet.RadiusMeters, reloaded.Planet.RadiusMeters);
+        var firstArea = double.Parse(first.ToRegionalCsv().Split('\n')[1].Split(',')[3], System.Globalization.CultureInfo.InvariantCulture);
+        var expectedArea = 4 * Math.PI * profile.Planet.RadiusMeters * profile.Planet.RadiusMeters / 288;
+        Assert.AreEqual(expectedArea, firstArea, expectedArea * 1e-12);
     }
 
     [TestMethod]
