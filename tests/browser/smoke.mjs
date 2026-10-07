@@ -131,15 +131,25 @@ try {
     }, null, { timeout: 60000 });
     // The animation bridge asks Blazor for a snapshot every 100 ms, so post-reload controls can rerender while Playwright checks actionability.
     // Normal click/select behavior is exercised earlier; here we dispatch the real DOM events so this storage replay check is not timing-sensitive.
-    await page.locator('#climate-model').evaluate(element => {
+    await page.evaluate(() => {
+        const element = document.querySelector('#climate-model');
+        if (!(element instanceof HTMLSelectElement)) throw new Error('Climate model select is unavailable after reload.');
         element.value = 'global';
         element.dispatchEvent(new Event('change', { bubbles: true }));
     });
     await page.waitForFunction(() => document.querySelector('#climate-model')?.value === 'global'
         && document.querySelector('#regional-summary') === null);
-    await page.locator('#pause').evaluate(button => button.click());
+    await page.evaluate(() => {
+        const button = document.querySelector('#pause');
+        if (!(button instanceof HTMLButtonElement)) throw new Error('Pause button is unavailable after reload.');
+        button.click();
+    });
     await page.waitForFunction(() => document.querySelector('#pause').textContent.includes('Hervatten'));
-    await page.locator('#load-scenario').evaluate(button => button.click());
+    await page.evaluate(() => {
+        const button = document.querySelector('#load-scenario');
+        if (!(button instanceof HTMLButtonElement)) throw new Error('Load scenario button is unavailable after reload.');
+        button.click();
+    });
     await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Browserreferentie');
     assert.equal(await page.locator('#temperature-chart').count(), 0);
     await page.locator('#run-experiment').click();
