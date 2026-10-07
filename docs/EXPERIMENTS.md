@@ -28,7 +28,7 @@ Nieuwe exports gebruiken formatversie 2. De nieuwe eigenschap `sampleEveryDays` 
 blijft iedere 60 seconden plaatsvinden. Format-v1-bestanden, waaronder de bestaande voorbeeldscenario's, worden automatisch gemigreerd naar v2 met
 `sampleEveryDays = 1`. Onbekende toekomstige formatversies blijven geweigerd.
 
-Zie [cooling.json](../examples/cooling.json). De modelidentiteit `global-blackbody-rk4-60s-v1` leggen de huidige vergelijkingen en numerieke stap vast. Alle vijf klimaatbeginwaarden staan expliciet in SI-eenheden, behalve afstand (AU), albedo en relatieve sterhelderheid. Een scenario is een recept, geen opslag van een lopende simulatie. Huidige modeltoestand, renderer en camerastand worden niet opgeslagen.
+Zie [cooling.json](../examples/cooling.json). De modelidentiteit `global-blackbody-rk4-60s-v1` legt de huidige vergelijkingen en numerieke stap vast. Alle vijf klimaatbeginwaarden staan expliciet in SI-eenheden, behalve afstand (AU), albedo en relatieve sterhelderheid. Een scenario is een recept, geen opslag van een lopende simulatie. Huidige modeltoestand, renderer en camerastand worden niet opgeslagen.
 
 De importer weigert onbekende versies/velden, ontbrekende beginwaarden, ongeldige waarden en bestanden boven 64 KiB. Nieuwe vergelijkingen of integratieregels moeten een nieuwe modelidentiteit krijgen; oude scenario’s mogen niet stilzwijgend een ander model gebruiken.
 
