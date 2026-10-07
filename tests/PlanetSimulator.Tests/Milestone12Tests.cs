@@ -33,9 +33,22 @@ public sealed class Milestone12Tests
     [TestMethod]
     public void LegacyV1Scenario_ImportsWithDailySamplingAndReexportsAsV2()
     {
-        var current = ScenarioJson.Serialize(ExperimentScenario.Create("Legacy", 2, new ClimateParameters()));
-        var legacy = current.Replace($"\"formatVersion\": {ExperimentScenario.CurrentFormatVersion}", "\"formatVersion\": 1")
-            .Replace("  \"sampleEveryDays\": 1,\n", string.Empty);
+        const string legacy = """
+            {
+              "formatVersion": 1,
+              "modelVersion": "global-blackbody-rk4-60s-v1",
+              "name": "Legacy",
+              "durationDays": 2,
+              "climate": {
+                "distanceAstronomicalUnits": 1,
+                "bondAlbedo": 0.3,
+                "arealHeatCapacity": 10000000,
+                "initialTemperatureKelvin": 230,
+                "stellarLuminositySolarUnits": 1
+              },
+              "changes": []
+            }
+            """;
         var imported = ScenarioJson.Deserialize(legacy);
         Assert.AreEqual(ExperimentScenario.CurrentFormatVersion, imported.FormatVersion);
         Assert.AreEqual(1, imported.SampleEveryDays);
