@@ -18,6 +18,7 @@ public static class AlbedoOptimizer
         if (!double.IsFinite(minimumAlbedo) || !double.IsFinite(maximumAlbedo) || minimumAlbedo < 0 || maximumAlbedo > 1 || minimumAlbedo >= maximumAlbedo)
             throw new ArgumentOutOfRangeException(nameof(minimumAlbedo));
         if (steps is < 2 or > 101) throw new ArgumentOutOfRangeException(nameof(steps));
+        if (scenario.Regional is not null) throw new ArgumentException("Albedo-optimalisatie gebruikt voorlopig alleen het uniforme klimaatmodel.", nameof(scenario));
         if (scenario.Changes.Length != 0) throw new ArgumentException("Albedo-optimalisatie vereist een scenario zonder geplande forcingwijzigingen.", nameof(scenario));
 
         var candidates = new List<AlbedoOptimizationCandidate>(steps);
