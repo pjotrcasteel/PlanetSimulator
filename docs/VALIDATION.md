@@ -102,3 +102,42 @@ Lokale Release-build van alle projecten: geslaagd, geen waarschuwingen of fouten
 Een gekoppelde CLI-proef van 30 dagen met `examples/terraforming.json` leverde 31 meetpunten. Maximale absolute afwijking: 1,82×10⁻⁵ J/m² voor het planetaire energiebudget, 8,95×10⁻⁸ J/m² voor de technische energievoorraad, nul voor bouwmateriaal en 0,0012 kg logistiek op circa 1,90×10¹² kg afgevangen CO₂. Eindige energie raakt op; de simulatie gaat daarna zonder verdere technische toevoer door.
 
 De browsertest controleert de nieuwe modelkeuze en editor, veranderde energievoorraad, JSON/CSV-replay, productie en levering. De GitHub-workflow vergelijkt alle dagelijkse kolommen en alle 288 eindcellen met de desktophost. Bevestigd: [workflow 37099311885](https://github.com/pjotrcasteel/PlanetSimulator/actions/runs/37099311885) op commit `5ca93ff641dca7566759df9fa59b16ea11400fd8` is volledig geslaagd: Windows met 81 tests, getrimde Blazor-publicatie, Chromium, JSON/CSV-replay en vergelijking van alle dagelijkse kolommen en 288 eindcellen met de desktop, inclusief terraforming. Handmatige native toetsenbordacceptatie en kalibratie van technische coëfficiënten blijven open.
+
+
+## Milestone 11 — wetenschappelijke referenties en gevoeligheid
+
+Milestone 11 voegt een afzonderlijke validatielaag toe bovenop de bestaande behouds-, convergentie-, replay- en hostvergelijkingstests. Het doel is niet
+om de volledige gekoppelde simulator al als gekalibreerd planeetmodel te bestempelen, maar om expliciet vast te leggen welke delen tegen externe
+referenties worden vergeleken, welke toleranties gelden en waar bekende fysica ontbreekt.
+
+De eerste benchmarkset gebruikt vijf gevallen:
+
+- zonne-instraling op 1 AU: 1361 W/m²;
+- globaal geabsorbeerde zonneflux voor een aardachtige Bond-albedo: referentie circa 240 W/m²;
+- effectieve stralingstemperatuur van de aarde: referentie circa 255 K;
+- gemiddelde aardse oppervlaktetemperatuur: circa 288 K, bewust gemarkeerd als `expected-gap` omdat het huidige klimaatmodel geen langgolvige
+  atmosferische broeikasfysica bevat;
+- Stefan-Boltzmann-emissie bij 288 K: circa 390 W/m².
+
+Bronnen: NASA Earth Observatory / NASA GISS voor het aardse energiebudget, effectieve temperatuur, oppervlaktetemperatuur en emissie. De toleranties
+zijn benchmarkafspraken voor deze specifieke controles en geen algemene foutgrenzen voor andere planeten of scenario's.
+
+De gevoeligheidsanalyse is deterministisch en one-at-a-time. Afstand, Bond-albedo, relatieve sterhelderheid en areale warmtecapaciteit worden elk rond
+de standaardwaarde gevarieerd. Iedere variant start vanuit dezelfde 230 K en wordt 30 simulatiedagen geïntegreerd. Het rapport bevat de lage,
+standaard- en hoge eindtemperatuur en een dimensieloze genormaliseerde gevoeligheid. Hierdoor zijn richting en relatieve sterkte van de respons
+machineleesbaar zonder te suggereren dat parameteronzekerheden al statistisch gekalibreerd zijn.
+
+CLI:
+
+```powershell
+dotnet run --project src/PlanetSimulator.Desktop -c Release -- --validate --output artifacts/validation
+```
+
+Uitvoer:
+
+- `validation.json`: volledig, versieerbaar rapport;
+- `validation.csv`: referentiegevallen, afwijkingen, toleranties, status en bron;
+- `sensitivity.csv`: vaste parameterperturbaties en genormaliseerde temperatuurrespons.
+
+Een echte onzekerheidsverdeling, Monte Carlo-ensemble, observationele kalibratie van hydrologie/chemie/biologie/terraforming en een gevalideerd
+broeikaseffect blijven buiten deze milestone. Die beperkingen blijven onderdeel van het geldigheidsgebied.
