@@ -15,7 +15,7 @@ public sealed record ExperimentResult(ExperimentScenario Scenario, IReadOnlyList
     public IReadOnlyList<double> FinalRegions { get; init; } = [];
     public string ToRegionalCsv()
     {
-        var grid = new SphericalGrid();
+        var grid = new SphericalGrid(Scenario.Planet.RadiusMeters);
         var csv = new StringBuilder("cell,latitude_deg,longitude_deg,area_m2,temperature_K");
         if (FinalSurface is not null) csv.Append(",elevation_m,water_kg_m2,liquid_kg_m2,ice_kg_m2");
         if (FinalSurface?.WaterCycle is not null) csv.Append(",vapor_kg_m2,cloud_kg_m2,runoff_kg_m2");
