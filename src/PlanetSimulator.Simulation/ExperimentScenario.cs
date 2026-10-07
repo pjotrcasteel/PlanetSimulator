@@ -7,7 +7,7 @@ namespace PlanetSimulator.Simulation;
 /// </summary>
 public sealed record ExperimentScenario
 {
-    public const int CurrentFormatVersion = 1;
+    public const int CurrentFormatVersion = 2;
     public const int MaximumDurationDays = 3650;
     public const string CurrentModelVersion = "global-blackbody-rk4-60s-v1";
     public const string RegionalModelVersion = "regional-blackbody-rk4-60s-12x24-v1";
