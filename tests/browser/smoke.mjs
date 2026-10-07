@@ -129,10 +129,10 @@ try {
         const model = document.querySelector('#climate-model');
         return pause?.disabled === false && model?.disabled === false && model.getClientRects().length > 0;
     }, null, { timeout: 60000 });
-    // A Blazor render can replace the select immediately after readiness flips. Wait one frame so Playwright acts on the stable control.
-    await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
-    await page.selectOption('#climate-model', 'global');
+    // Stop frame-driven Blazor rerenders before operating the model select after a full reload.
     await page.locator('#pause').click();
+    await page.waitForFunction(() => document.querySelector('#pause').textContent.includes('Hervatten'));
+    await page.selectOption('#climate-model', 'global');
     await page.locator('#load-scenario').click();
     await page.waitForFunction(() => document.querySelector('#scenario-name').value === 'Browserreferentie');
     assert.equal(await page.locator('#temperature-chart').count(), 0);
